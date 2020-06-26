@@ -11,7 +11,8 @@ find_package(CURL REQUIRED)
 
 set(SRC_FILES
 	src/prospect.cpp
-	src/xml.cpp)
+	src/xml.cpp
+	src/soap.cpp)
 
 add_executable(prospect ${SRC_FILES})
 target_link_libraries(prospect ${LIBXML2_LIBRARIES})

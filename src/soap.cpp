@@ -6,6 +6,14 @@
 
 using namespace std;
 
+static const unordered_map<string, string> namespaces = {
+    { "soap", "http://schemas.xmlsoap.org/soap/envelope/" },
+    { "a", "http://schemas.microsoft.com/exchange/2010/Autodiscover" },
+    { "wsa", "http://www.w3.org/2005/08/addressing" },
+    { "m", "http://schemas.microsoft.com/exchange/services/2006/messages" },
+    { "t", "http://schemas.microsoft.com/exchange/services/2006/types" }
+};
+
 static size_t curl_read_cb(void* dest, size_t size, size_t nmemb, void* userdata) {
     auto& s = *(soap*)userdata;
 
@@ -35,11 +43,14 @@ string soap::create_xml(const string& url, const string& action, const string& b
     }
 
     req.start_document();
-    req.start_element("soap:Envelope", { { "soap", "http://schemas.xmlsoap.org/soap/envelope/" }, { "a", "http://schemas.microsoft.com/exchange/2010/Autodiscover" }, { "wsa", "http://www.w3.org/2005/08/addressing" } });
+    req.start_element("soap:Envelope", namespaces);
 
     req.start_element("soap:Header");
     req.element_text("a:RequestedServerVersion", "Exchange2010");
-    req.element_text("wsa:Action", action);
+
+    if (!action.empty())
+        req.element_text("wsa:Action", action);
+
     req.element_text("wsa:To", url);
     req.end_element();
 
@@ -91,10 +102,12 @@ string soap::get(const string& url, const string& action, const string& body) {
         if (res != CURLE_OK)
             throw runtime_error(curl_easy_strerror(res));
 
-        chunk = curl_slist_append(chunk, soap_action.c_str());
-        res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-        if (res != CURLE_OK)
-            throw runtime_error(curl_easy_strerror(res));
+        if (!action.empty()) {
+            chunk = curl_slist_append(chunk, soap_action.c_str());
+            res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+            if (res != CURLE_OK)
+                throw runtime_error(curl_easy_strerror(res));
+        }
 
         payload_sv = payload;
 

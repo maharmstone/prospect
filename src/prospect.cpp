@@ -118,12 +118,58 @@ static void get_user_settings(const string& url, const string& mailbox, map<stri
     xmlFreeDoc(doc);
 }
 
+static void send_email(const string& url, const string& subject, const string& body, const string& addressee) {
+    soap s;
+    xml_writer req;
+
+    req.start_document();
+    req.start_element("m:CreateItem");
+    req.attribute("MessageDisposition", "SendAndSaveCopy");
+
+    req.start_element("m:SavedItemFolderId");
+    req.start_element("t:DistinguishedFolderId");
+    req.attribute("Id", "sentitems");
+    req.end_element();
+    req.end_element();
+
+    req.start_element("m:Items");
+
+    req.start_element("t:Message");
+    req.element_text("t:Subject", subject);
+
+    req.start_element("t:Body");
+    req.attribute("BodyType", "HTML");
+    req.text(body);
+    req.end_element();
+
+    req.start_element("t:ToRecipients");
+    req.start_element("t:Mailbox");
+    req.element_text("t:EmailAddress", addressee);
+    req.end_element();
+    req.end_element();
+
+    req.end_element();
+
+    req.end_element();
+
+    req.end_element();
+
+    req.end_document();
+
+    auto ret = s.get(url, "", req.dump());
+
+    printf("%s\n", ret.c_str());
+}
+
 static void main2() {
     map<string, string> settings{ { "InternalEwsUrl", "" } };
 
-    get_user_settings("https://autodiscover.boltonft.nhs.uk/autodiscover/autodiscover.svc", "mark.harmstone@boltonft.nhs.uk", settings);
+    get_user_settings("https://autodiscover.boltonft.nhs.uk/autodiscover/autodiscover.svc", "mark.harmstone@boltonft.nhs.uk", settings); // FIXME
 
-    cout << "InternalEwsUrl: " << settings["InternalEwsUrl"] << endl;
+    if (settings.at("InternalEwsUrl").empty())
+        throw runtime_error("Could not find value for InternalEwsUrl.");
+
+    send_email(settings.at("InternalEwsUrl"), "Interesting", "The merger is finalized.", "mark.harmstone@boltonft.nhs.uk");
 }
 
 int main() {

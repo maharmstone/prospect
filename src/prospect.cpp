@@ -133,8 +133,11 @@ int main() {
         main2();
     } catch (const exception& e) {
         cerr << e.what() << endl;
+        curl_global_cleanup();
         return 1;
     }
+
+    curl_global_cleanup();
 
     return 0;
 }

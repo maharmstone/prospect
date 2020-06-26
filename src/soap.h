@@ -10,6 +10,7 @@ public:
 
 private:
     std::string create_xml(const std::string& url, const std::string& action, const std::string& body);
+    std::string extract_response(const std::string_view& ret);
 
     std::string ret;
     std::string_view payload_sv;

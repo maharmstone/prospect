@@ -114,7 +114,7 @@ string soap::get(const string& url, const string& action, const string& body) {
 
     curl_easy_cleanup(curl);
 
-    return ret;
+    return extract_response(ret);
 }
 
 void soap::write(char* ptr, size_t size) {
@@ -130,4 +130,65 @@ size_t soap::read(void* ptr, size_t size) {
     payload_sv = payload_sv.substr(size);
 
     return size;
+}
+
+string soap::extract_response(const string_view& ret) {
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw runtime_error("Invalid XML.");
+
+    try {
+        xmlNodePtr root, n;
+
+        root = xmlDocGetRootElement(doc);
+
+        if (!root)
+            throw runtime_error("Root element not found.");
+
+        if (!root->ns || strcmp((char*)root->ns->href, "http://schemas.xmlsoap.org/soap/envelope/") || strcmp((char*)root->name, "Envelope"))
+            throw runtime_error("Root element was not soap:Envelope.");
+
+        n = root->children;
+
+        while (n) {
+            if (n->type == XML_ELEMENT_NODE && n->ns && !strcmp((char*)n->ns->href, "http://schemas.xmlsoap.org/soap/envelope/") && !strcmp((char*)n->name, "Body")) {
+                xmlBufferPtr buf = xmlBufferCreate();
+
+                if (!buf)
+                    throw runtime_error("xmlBufferCreate failed.");
+
+                try {
+                    xmlNodePtr copy = xmlCopyNode(n, 1);
+                    if (!copy)
+                        throw runtime_error("xmlCopyNode failed.");
+
+                    if (xmlNodeDump(buf, doc, copy, 0, 0) == 0) {
+                        xmlFreeNode(copy);
+                        throw runtime_error("xmlNodeDump failed.");
+                    }
+
+                    xmlFreeNode(copy);
+                } catch (...) {
+                    xmlBufferFree(buf);
+                    throw;
+                }
+
+                auto s = string((char*)buf->content, buf->use);
+
+                xmlBufferFree(buf);
+
+                return s;
+            }
+
+            n = n->next;
+        }
+
+        throw runtime_error("soap:Body not found in response.");
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
 }

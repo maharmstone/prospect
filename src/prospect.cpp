@@ -2,12 +2,13 @@
 #include <stdio.h>
 #include <string>
 #include <iostream>
+#include <map>
 #include "xml.h"
 #include "soap.h"
 
 using namespace std;
 
-static void get_user_settings(const string& url, const string& mailbox) {
+static void get_user_settings(const string& url, const string& mailbox, map<string, string>& settings) {
     soap s;
     xml_writer req;
 
@@ -22,7 +23,11 @@ static void get_user_settings(const string& url, const string& mailbox) {
     req.end_element();
 
     req.start_element("a:RequestedSettings");
-    req.element_text("a:Setting", "InternalEwsUrl");
+
+    for (const auto& s : settings) {
+        req.element_text("a:Setting", s.first);
+    }
+
     req.end_element();
 
     req.end_element();
@@ -37,7 +42,9 @@ static void get_user_settings(const string& url, const string& mailbox) {
 }
 
 static void main2() {
-    get_user_settings("https://autodiscover.boltonft.nhs.uk/autodiscover/autodiscover.svc", "mark.harmstone@boltonft.nhs.uk");
+    map<string, string> settings{ { "InternalEwsUrl", "" } };
+
+    get_user_settings("https://autodiscover.boltonft.nhs.uk/autodiscover/autodiscover.svc", "mark.harmstone@boltonft.nhs.uk", settings);
 }
 
 int main() {

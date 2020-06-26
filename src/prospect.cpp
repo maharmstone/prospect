@@ -152,6 +152,33 @@ static void send_email(const string& url, const string& subject, const string& b
     xmlFreeDoc(doc);
 }
 
+static void find_folders(const string& url) {
+    soap s;
+    xml_writer req;
+
+    req.start_document();
+    req.start_element("m:FindFolder");
+    req.attribute("Traversal", "Shallow");
+
+    req.start_element("m:FolderShape");
+    req.element_text("t:BaseShape", "Default");
+    req.end_element();
+
+    req.start_element("m:ParentFolderIds");
+    req.start_element("t:DistinguishedFolderId");
+    req.attribute("Id", "inbox");
+    req.end_element();
+    req.end_element();
+
+    req.end_element();
+
+    req.end_document();
+
+    auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+
+    printf("%s\n", ret.c_str());
+}
+
 static void main2() {
     map<string, string> settings{ { "InternalEwsUrl", "" } };
 
@@ -160,7 +187,9 @@ static void main2() {
     if (settings.at("InternalEwsUrl").empty())
         throw runtime_error("Could not find value for InternalEwsUrl.");
 
-    send_email(settings.at("InternalEwsUrl"), "Interesting", "The merger is finalized.", "mark.harmstone@boltonft.nhs.uk");
+//     send_email(settings.at("InternalEwsUrl"), "Interesting", "The merger is finalized.", "mark.harmstone@boltonft.nhs.uk");
+
+    find_folders(settings.at("InternalEwsUrl"));
 }
 
 int main() {

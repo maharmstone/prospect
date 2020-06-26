@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <string>
-#include <functional>
 #include <iostream>
 #include <map>
 #include "xml.h"
@@ -12,56 +11,6 @@ using namespace std;
 
 static const string autodiscover_ns = "http://schemas.microsoft.com/exchange/2010/Autodiscover";
 static const string messages_ns = "http://schemas.microsoft.com/exchange/services/2006/messages";
-
-static xmlNodePtr find_tag(xmlNodePtr root, const string& ns, const string& name) {
-    xmlNodePtr n = root->children;
-
-    while (n) {
-        if (n->type == XML_ELEMENT_NODE && n->ns && !strcmp((char*)n->ns->href, ns.c_str()) && !strcmp((char*)n->name, name.c_str()))
-            return n;
-
-        n = n->next;
-    }
-
-    throw runtime_error("Could not find " + name + " tag");
-}
-
-static string get_tag_content(xmlNodePtr n) {
-    auto xc = xmlNodeGetContent(n);
-
-    if (!xc)
-        return "";
-
-    string ret{(char*)xc};
-
-    xmlFree(xc);
-
-    return ret;
-}
-
-static void find_tags(xmlNodePtr n, const string& ns, const string& tag, const function<void(xmlNodePtr)>& func) {
-    auto c = n->children;
-
-    while (c) {
-        if (c->type == XML_ELEMENT_NODE && c->ns && !strcmp((char*)c->ns->href, ns.c_str()) && !strcmp((char*)c->name, tag.c_str()))
-            func(c);
-
-        c = c->next;
-    }
-}
-
-static string get_prop(xmlNodePtr n, const string& name) {
-    auto xc = xmlGetProp(n, BAD_CAST name.c_str());
-
-    if (!xc)
-        return "";
-
-    string ret{(char*)xc};
-
-    xmlFree(xc);
-
-    return ret;
-}
 
 static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& settings) {
     auto response = find_tag(n, autodiscover_ns, "Response");

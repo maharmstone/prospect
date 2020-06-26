@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <functional>
 #include <libxml/xmlwriter.h>
 
 class xml_writer {
@@ -28,3 +29,8 @@ private:
     xmlBufferPtr buf;
     xmlTextWriterPtr writer;
 };
+
+xmlNodePtr find_tag(xmlNodePtr root, const std::string& ns, const std::string& name);
+std::string get_tag_content(xmlNodePtr n);
+void find_tags(xmlNodePtr n, const std::string& ns, const std::string& tag, const std::function<void(xmlNodePtr)>& func);
+std::string get_prop(xmlNodePtr n, const std::string& name);

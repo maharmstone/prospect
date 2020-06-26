@@ -1,5 +1,6 @@
 #include "xml.h"
 #include <stdexcept>
+#include <string.h>
 
 using namespace std;
 
@@ -74,4 +75,54 @@ void xml_writer::raw(const std::string& s) {
     int rc = xmlTextWriterWriteRaw(writer, BAD_CAST s.c_str());
     if (rc < 0)
         throw runtime_error("xmlTextWriterWriteRaw failed (error " + to_string(rc) + ")");
+}
+
+xmlNodePtr find_tag(xmlNodePtr root, const string& ns, const string& name) {
+    xmlNodePtr n = root->children;
+
+    while (n) {
+        if (n->type == XML_ELEMENT_NODE && n->ns && !strcmp((char*)n->ns->href, ns.c_str()) && !strcmp((char*)n->name, name.c_str()))
+            return n;
+
+        n = n->next;
+    }
+
+    throw runtime_error("Could not find " + name + " tag");
+}
+
+string get_tag_content(xmlNodePtr n) {
+    auto xc = xmlNodeGetContent(n);
+
+    if (!xc)
+        return "";
+
+    string ret{(char*)xc};
+
+    xmlFree(xc);
+
+    return ret;
+}
+
+void find_tags(xmlNodePtr n, const string& ns, const string& tag, const function<void(xmlNodePtr)>& func) {
+    auto c = n->children;
+
+    while (c) {
+        if (c->type == XML_ELEMENT_NODE && c->ns && !strcmp((char*)c->ns->href, ns.c_str()) && !strcmp((char*)c->name, tag.c_str()))
+            func(c);
+
+        c = c->next;
+    }
+}
+
+string get_prop(xmlNodePtr n, const string& name) {
+    auto xc = xmlGetProp(n, BAD_CAST name.c_str());
+
+    if (!xc)
+        return "";
+
+    string ret{(char*)xc};
+
+    xmlFree(xc);
+
+    return ret;
 }

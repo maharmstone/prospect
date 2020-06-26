@@ -14,6 +14,7 @@ public:
     void start_element(const std::string& tag, const std::unordered_map<std::string, std::string>& namespaces = {});
     void end_element();
     void text(const std::string& s);
+    void raw(const std::string& s);
 
     void element_text(const std::string& tag, const std::string& s, const std::unordered_map<std::string, std::string>& namespaces = {}) {
         start_element(tag, namespaces);

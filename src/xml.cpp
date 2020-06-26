@@ -69,3 +69,9 @@ void xml_writer::attribute(const string& name, const string& value) {
     if (rc < 0)
         throw runtime_error("xmlTextWriterWriteAttribute failed (error " + to_string(rc) + ")");
 }
+
+void xml_writer::raw(const std::string& s) {
+    int rc = xmlTextWriterWriteRaw(writer, BAD_CAST s.c_str());
+    if (rc < 0)
+        throw runtime_error("xmlTextWriterWriteRaw failed (error " + to_string(rc) + ")");
+}

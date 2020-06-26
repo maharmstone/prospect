@@ -28,7 +28,7 @@ static size_t curl_write_cb(char* ptr, size_t size, size_t nmemb, void* userdata
     return size * nmemb;
 }
 
-string soap::create_xml(const string& url, const string& action, const string& body) {
+string soap::create_xml(const string& url, const string& action, const string& header, const string& body) {
     string body2 = body;
     xml_writer req;
 
@@ -46,12 +46,7 @@ string soap::create_xml(const string& url, const string& action, const string& b
     req.start_element("soap:Envelope", namespaces);
 
     req.start_element("soap:Header");
-    req.element_text("a:RequestedServerVersion", "Exchange2010");
-
-    if (!action.empty())
-        req.element_text("wsa:Action", action);
-
-    req.element_text("wsa:To", url);
+    req.raw(header);
     req.end_element();
 
     req.start_element("soap:Body");
@@ -64,8 +59,8 @@ string soap::create_xml(const string& url, const string& action, const string& b
     return req.dump();
 }
 
-string soap::get(const string& url, const string& action, const string& body) {
-    auto payload = create_xml(url, action, body);
+string soap::get(const string& url, const string& action, const string& header, const string& body) {
+    auto payload = create_xml(url, action, header, body);
     string soap_action = "SOAPAction: " + action;
 
     CURLcode res;

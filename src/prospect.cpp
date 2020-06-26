@@ -79,6 +79,8 @@ static void get_user_settings(const string& url, const string& mailbox, map<stri
     soap s;
     xml_writer req;
 
+    static const string action = "http://schemas.microsoft.com/exchange/2010/Autodiscover/Autodiscover/GetUserSettings";
+
     req.start_document();
     req.start_element("a:GetUserSettingsRequestMessage");
     req.start_element("a:Request");
@@ -91,8 +93,8 @@ static void get_user_settings(const string& url, const string& mailbox, map<stri
 
     req.start_element("a:RequestedSettings");
 
-    for (const auto& s : settings) {
-        req.element_text("a:Setting", s.first);
+    for (const auto& setting : settings) {
+        req.element_text("a:Setting", setting.first);
     }
 
     req.end_element();
@@ -101,7 +103,9 @@ static void get_user_settings(const string& url, const string& mailbox, map<stri
     req.end_element();
     req.end_document();
 
-    auto ret = s.get(url, "http://schemas.microsoft.com/exchange/2010/Autodiscover/Autodiscover/GetUserSettings", req.dump());
+    string header = "<a:RequestedServerVersion>Exchange2010</a:RequestedServerVersion><wsa:Action>" + action + "</wsa:Action><wsa:To>" + url + "</wsa:To>";
+
+    auto ret = s.get(url, "http://schemas.microsoft.com/exchange/2010/Autodiscover/Autodiscover/GetUserSettings", header, req.dump());
 
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
@@ -156,7 +160,7 @@ static void send_email(const string& url, const string& subject, const string& b
 
     req.end_document();
 
-    auto ret = s.get(url, "", req.dump());
+    auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
     printf("%s\n", ret.c_str());
 }

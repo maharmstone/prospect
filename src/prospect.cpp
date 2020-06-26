@@ -11,6 +11,19 @@ using namespace std;
 
 static const string autodiscover_ns = "http://schemas.microsoft.com/exchange/2010/Autodiscover";
 static const string messages_ns = "http://schemas.microsoft.com/exchange/services/2006/messages";
+static const string types_ns = "http://schemas.microsoft.com/exchange/services/2006/types";
+
+class folder {
+public:
+    folder(const string_view& id, const string_view& change_key, const string_view& display_name,
+           unsigned int total_count, unsigned int child_folder_count, unsigned int unread_count) :
+           id(id), change_key(change_key), display_name(display_name), total_count(total_count),
+           child_folder_count(child_folder_count), unread_count(unread_count) {
+    }
+
+    string id, change_key, display_name;
+    unsigned int total_count, child_folder_count, unread_count;
+};
 
 static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& settings) {
     auto response = find_tag(n, autodiscover_ns, "Response");
@@ -152,7 +165,7 @@ static void send_email(const string& url, const string& subject, const string& b
     xmlFreeDoc(doc);
 }
 
-static void find_folders(const string& url) {
+static vector<folder> find_folders(const string& url) {
     soap s;
     xml_writer req;
 
@@ -176,7 +189,52 @@ static void find_folders(const string& url) {
 
     auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
-    printf("%s\n", ret.c_str());
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw runtime_error("Could not parse response.");
+
+    vector<folder> folders;
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "FindFolderResponse");
+
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto ffrm = find_tag(response_messages, messages_ns, "FindFolderResponseMessage");
+
+        auto response_class = get_prop(ffrm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+
+            throw runtime_error("FindFolder failed (" + response_class + ", " + response_code + ").");
+        }
+
+        auto root_folder = find_tag(ffrm, messages_ns, "RootFolder");
+
+        auto folders_tag = find_tag(root_folder, types_ns, "Folders");
+
+        find_tags(folders_tag, types_ns, "Folder", [&](xmlNodePtr c) {
+            auto folder_id = find_tag(c, types_ns, "FolderId");
+            auto id = get_prop(folder_id, "Id");
+            auto change_key = get_prop(folder_id, "ChangeKey");
+
+            auto display_name = get_tag_content(find_tag(c, types_ns, "DisplayName"));
+            auto total_count = stoul(get_tag_content(find_tag(c, types_ns, "TotalCount")));
+            auto child_folder_count = stoul(get_tag_content(find_tag(c, types_ns, "ChildFolderCount")));
+            auto unread_count = stoul(get_tag_content(find_tag(c, types_ns, "UnreadCount")));
+
+            folders.emplace_back(id, change_key, display_name, total_count, child_folder_count, unread_count);
+        });
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
+
+    return folders;
 }
 
 static void main2() {
@@ -189,7 +247,13 @@ static void main2() {
 
 //     send_email(settings.at("InternalEwsUrl"), "Interesting", "The merger is finalized.", "mark.harmstone@boltonft.nhs.uk");
 
-    find_folders(settings.at("InternalEwsUrl"));
+    auto folders = find_folders(settings.at("InternalEwsUrl"));
+
+    for (const auto& f : folders) {
+        printf("Folder: ID %s, change key %s, display name %s, total %u, child folder count %u, unread %u\n",
+               f.id.c_str(), f.change_key.c_str(), f.display_name.c_str(), f.total_count,
+               f.child_folder_count, f.unread_count);
+    }
 }
 
 int main() {

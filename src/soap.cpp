@@ -92,10 +92,7 @@ string soap::get(const string& url, const string& action, const string& body) {
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
 
-        chunk = curl_slist_append(chunk, "Transfer-Encoding: chunked");
-        res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
-        if (res != CURLE_OK)
-            throw runtime_error(curl_easy_strerror(res));
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, payload.length());
 
         chunk = curl_slist_append(chunk, "Content-Type: text/xml;charset=UTF-8");
         res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);

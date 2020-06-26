@@ -11,6 +11,7 @@
 using namespace std;
 
 static const string autodiscover_ns = "http://schemas.microsoft.com/exchange/2010/Autodiscover";
+static const string messages_ns = "http://schemas.microsoft.com/exchange/services/2006/messages";
 
 static xmlNodePtr find_tag(xmlNodePtr root, const string& ns, const string& name) {
     xmlNodePtr n = root->children;
@@ -47,6 +48,19 @@ static void find_tags(xmlNodePtr n, const string& ns, const string& tag, const f
 
         c = c->next;
     }
+}
+
+static string get_prop(xmlNodePtr n, const string& name) {
+    auto xc = xmlGetProp(n, BAD_CAST name.c_str());
+
+    if (!xc)
+        return "";
+
+    string ret{(char*)xc};
+
+    xmlFree(xc);
+
+    return ret;
 }
 
 static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& settings) {
@@ -162,7 +176,31 @@ static void send_email(const string& url, const string& subject, const string& b
 
     auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
-    printf("%s\n", ret.c_str());
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw runtime_error("Could not parse response.");
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "CreateItemResponse");
+
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto cirm = find_tag(response_messages, messages_ns, "CreateItemResponseMessage");
+
+        auto response_class = get_prop(cirm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = get_tag_content(find_tag(cirm, messages_ns, "ResponseCode"));
+
+            throw runtime_error("CreateItem failed (" + response_class + ", " + response_code + ").");
+        }
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
 }
 
 static void main2() {

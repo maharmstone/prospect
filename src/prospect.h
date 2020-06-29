@@ -4,6 +4,19 @@
 #include <string>
 #include <stdexcept>
 
+class folder {
+public:
+    folder(const std::string_view& id, const std::string_view& parent, const std::string_view& change_key,
+           const std::string_view& display_name, unsigned int total_count, unsigned int child_folder_count,
+           unsigned int unread_count) :
+           id(id), parent(parent), change_key(change_key), display_name(display_name), total_count(total_count),
+           child_folder_count(child_folder_count), unread_count(unread_count) {
+    }
+
+    std::string id, parent, change_key, display_name;
+    unsigned int total_count, child_folder_count, unread_count;
+};
+
 static __inline std::u16string utf8_to_utf16(const std::string_view& s) {
     std::u16string ret;
 

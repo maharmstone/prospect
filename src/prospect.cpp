@@ -14,18 +14,6 @@ static const string autodiscover_ns = "http://schemas.microsoft.com/exchange/201
 static const string messages_ns = "http://schemas.microsoft.com/exchange/services/2006/messages";
 static const string types_ns = "http://schemas.microsoft.com/exchange/services/2006/types";
 
-class folder {
-public:
-    folder(const string_view& id, const string_view& change_key, const string_view& display_name,
-           unsigned int total_count, unsigned int child_folder_count, unsigned int unread_count) :
-           id(id), change_key(change_key), display_name(display_name), total_count(total_count),
-           child_folder_count(child_folder_count), unread_count(unread_count) {
-    }
-
-    string id, change_key, display_name;
-    unsigned int total_count, child_folder_count, unread_count;
-};
-
 static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& settings) {
     auto response = find_tag(n, autodiscover_ns, "Response");
 
@@ -243,16 +231,24 @@ static vector<folder> find_folders(const string& url) {
 
     req.start_document();
     req.start_element("m:FindFolder");
-    req.attribute("Traversal", "Shallow");
+    req.attribute("Traversal", "Deep");
 
     req.start_element("m:FolderShape");
     req.element_text("t:BaseShape", "Default");
+
+    req.start_element("t:AdditionalProperties");
+    req.start_element("t:FieldURI");
+    req.attribute("FieldURI", "folder:ParentFolderId");
+    req.end_element();
+    req.end_element();
+
     req.end_element();
 
     req.start_element("m:ParentFolderIds");
     req.start_element("t:DistinguishedFolderId");
-    req.attribute("Id", "inbox");
+    req.attribute("Id", "root");
     req.end_element();
+
     req.end_element();
 
     req.end_element();
@@ -289,6 +285,7 @@ static vector<folder> find_folders(const string& url) {
 
         find_tags(folders_tag, types_ns, "Folder", [&](xmlNodePtr c) {
             auto folder_id = find_tag(c, types_ns, "FolderId");
+            auto parent = get_prop(find_tag(c, types_ns, "ParentFolderId"), "Id");
             auto id = get_prop(folder_id, "Id");
             auto change_key = get_prop(folder_id, "ChangeKey");
 
@@ -297,7 +294,7 @@ static vector<folder> find_folders(const string& url) {
             auto child_folder_count = stoul(get_tag_content(find_tag(c, types_ns, "ChildFolderCount")));
             auto unread_count = stoul(get_tag_content(find_tag(c, types_ns, "UnreadCount")));
 
-            folders.emplace_back(id, change_key, display_name, total_count, child_folder_count, unread_count);
+            folders.emplace_back(id, parent, change_key, display_name, total_count, child_folder_count, unread_count);
         });
     } catch (...) {
         xmlFreeDoc(doc);
@@ -335,8 +332,8 @@ static void main2() {
     auto folders = find_folders(settings.at("ExternalEwsUrl"));
 
     for (const auto& f : folders) {
-        printf("Folder: ID %s, change key %s, display name %s, total %u, child folder count %u, unread %u\n",
-               f.id.c_str(), f.change_key.c_str(), f.display_name.c_str(), f.total_count,
+        printf("Folder: ID %s, parent %s, change key %s, display name %s, total %u, child folder count %u, unread %u\n",
+               f.id.c_str(), f.parent.c_str(), f.change_key.c_str(), f.display_name.c_str(), f.total_count,
                f.child_folder_count, f.unread_count);
     }
 }

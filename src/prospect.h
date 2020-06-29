@@ -98,3 +98,31 @@ public:
 private:
     std::string msg;
 };
+
+class formatted_error : public std::exception {
+public:
+    template<typename... Args>
+    formatted_error(const std::string_view& s, Args&&... args) {
+        msg = fmt::format(s, std::forward<Args>(args)...);
+    }
+
+    const char* what() const noexcept {
+        return msg.c_str();
+    }
+
+private:
+    std::string msg;
+};
+
+class folder_item {
+public:
+    folder_item(const std::string_view& id, const std::string_view& subject, const std::string_view& received,
+                bool read, const std::string_view& sender_name, const std::string_view& sender_email) :
+                id(id), subject(subject), received(received), read(read), sender_name(sender_name),
+                sender_email(sender_email) {
+    }
+
+    std::string id, subject, received;
+    bool read;
+    std::string sender_name, sender_email;
+};

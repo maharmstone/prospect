@@ -38,6 +38,8 @@ static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& 
 
         if (settings.count(name) != 0)
             settings[name] = value;
+
+        return true;
     });
 }
 
@@ -111,6 +113,8 @@ static void parse_get_domain_settings_response(xmlNodePtr n, map<string, string>
 
         if (settings.count(name) != 0)
             settings[name] = value;
+
+        return true;
     });
 }
 
@@ -226,6 +230,12 @@ static void send_email(const string& url, const string& subject, const string& b
     xmlFreeDoc(doc);
 }
 
+static void field_uri(xml_writer& req, const string& uri) {
+    req.start_element("t:FieldURI");
+    req.attribute("FieldURI", uri);
+    req.end_element();
+}
+
 static vector<folder> find_folders(const string& url) {
     soap s;
     xml_writer req;
@@ -238,9 +248,7 @@ static vector<folder> find_folders(const string& url) {
     req.element_text("t:BaseShape", "Default");
 
     req.start_element("t:AdditionalProperties");
-    req.start_element("t:FieldURI");
-    req.attribute("FieldURI", "folder:ParentFolderId");
-    req.end_element();
+    field_uri(req, "folder:ParentFolderId");
     req.end_element();
 
     req.end_element();
@@ -296,6 +304,8 @@ static vector<folder> find_folders(const string& url) {
             auto unread_count = stoul(get_tag_content(find_tag(c, types_ns, "UnreadCount")));
 
             folders.emplace_back(id, parent, change_key, display_name, total_count, child_folder_count, unread_count);
+
+            return true;
         });
     } catch (...) {
         xmlFreeDoc(doc);
@@ -331,6 +341,96 @@ static const folder& find_folder(const string_view& parent, const string_view& n
         if (f.parent == parent && f.display_name == name)
             return f;
     }
+
+    throw formatted_error("Could not find folder {} with parent {}.", name, parent);
+}
+
+static void find_items(const string& url, const string& folder, const function<bool(const folder_item&)>& func) {
+    soap s;
+    xml_writer req;
+
+    req.start_document();
+    req.start_element("m:FindItem");
+    req.attribute("Traversal", "Shallow");
+
+    req.start_element("m:ItemShape");
+    req.element_text("t:BaseShape", "IdOnly");
+
+    req.start_element("t:AdditionalProperties");
+    field_uri(req, "item:Subject");
+    field_uri(req, "item:DateTimeReceived");
+    field_uri(req, "message:Sender");
+    field_uri(req, "message:IsRead");
+    req.end_element();
+    req.end_element();
+
+    req.start_element("m:SortOrder");
+    req.start_element("t:FieldOrder");
+    req.attribute("Order", "Ascending");
+    field_uri(req, "item:DateTimeReceived");
+    req.end_element();
+    req.end_element();
+
+    req.start_element("m:ParentFolderIds");
+    req.start_element("t:FolderId");
+    req.attribute("Id", folder);
+    req.end_element();
+    req.end_element();
+
+    req.end_element();
+
+    req.end_document();
+
+    // FIXME - only get so many at once?
+
+    auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw runtime_error("Could not parse response.");
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "FindItemResponse");
+
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto ffrm = find_tag(response_messages, messages_ns, "FindItemResponseMessage");
+
+        auto response_class = get_prop(ffrm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+
+            throw runtime_error("FindItem failed (" + response_class + ", " + response_code + ").");
+        }
+
+        auto root_folder = find_tag(ffrm, messages_ns, "RootFolder");
+
+        auto items_tag = find_tag(root_folder, types_ns, "Items");
+
+        find_tags(items_tag, types_ns, "Message", [&](xmlNodePtr c) {
+            auto id = get_prop(find_tag(c, types_ns, "ItemId"), "Id");
+            auto subj = get_tag_content(find_tag(c, types_ns, "Subject"));
+            auto received = get_tag_content(find_tag(c, types_ns, "DateTimeReceived"));
+            bool read = get_tag_content(find_tag(c, types_ns, "IsRead")) == "true";
+
+            auto sender = find_tag(c, types_ns, "Sender");
+            auto sender_mailbox = find_tag(sender, types_ns, "Mailbox");
+
+            auto sender_name = get_tag_content(find_tag(sender_mailbox, types_ns, "Name"));
+            auto sender_email = get_tag_content(find_tag(sender_mailbox, types_ns, "EmailAddress"));
+
+            folder_item item(id, subj, received, read, sender_name, sender_email);
+
+            return func(item);
+        });
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
 }
 
 static void main2() {
@@ -357,7 +457,12 @@ static void main2() {
 
     const auto& dir = find_folder(inbox.id, "Juno", folders);
 
-    // FIXME
+    find_items(settings.at("ExternalEwsUrl"), dir.id, [](const folder_item& item) {
+        fmt::print("Message {}, subject {}, received {}, read {}, sender {} <{}>\n", item.id, item.subject, item.received,
+                   item.read, item.sender_name, item.sender_email);
+
+        return true;
+    });
 }
 
 int main() {

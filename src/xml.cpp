@@ -103,12 +103,13 @@ string get_tag_content(xmlNodePtr n) {
     return ret;
 }
 
-void find_tags(xmlNodePtr n, const string& ns, const string& tag, const function<void(xmlNodePtr)>& func) {
+void find_tags(xmlNodePtr n, const string& ns, const string& tag, const function<bool(xmlNodePtr)>& func) {
     auto c = n->children;
 
     while (c) {
         if (c->type == XML_ELEMENT_NODE && c->ns && !strcmp((char*)c->ns->href, ns.c_str()) && !strcmp((char*)c->name, tag.c_str()))
-            func(c);
+            if (!func(c))
+                return;
 
         c = c->next;
     }

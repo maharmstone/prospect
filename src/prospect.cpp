@@ -317,6 +317,22 @@ static string get_domain_name() {
     return utf16_to_utf8(buf);
 }
 
+static const folder& find_inbox(const vector<folder>& folders) {
+    for (const auto& f : folders) {
+        if (f.display_name == "Inbox")
+            return f;
+    }
+
+    throw runtime_error("Folder \"Inbox\" not found.");
+}
+
+static const folder& find_folder(const string_view& parent, const string_view& name, const vector<folder>& folders) {
+    for (const auto& f : folders) {
+        if (f.parent == parent && f.display_name == name)
+            return f;
+    }
+}
+
 static void main2() {
     map<string, string> settings{ { "ExternalEwsUrl", "" } };
 
@@ -336,6 +352,12 @@ static void main2() {
         fmt::print("Folder: ID {}, parent {}, change key {}, display name {}, total {}, child folder count {}, unread {}\n",
                    f.id, f.parent, f.change_key, f.display_name, f.total_count, f.child_folder_count, f.unread_count);
     }
+
+    const auto& inbox = find_inbox(folders);
+
+    const auto& dir = find_folder(inbox.id, "Juno", folders);
+
+    // FIXME
 }
 
 int main() {

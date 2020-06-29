@@ -8,6 +8,7 @@
 #include "prospect.h"
 #include "xml.h"
 #include "soap.h"
+#include "b64.h"
 
 using namespace std;
 
@@ -588,9 +589,7 @@ string prospect::read_attachment(const string& id) {
 
     xmlFreeDoc(doc);
 
-    // FIXME - translate from base-64
-
-    return content;
+    return b64decode(content);
 }
 
 static void main2() {
@@ -622,8 +621,12 @@ static void main2() {
                 auto str = p.read_attachment(att.id);
 
                 fmt::print("Content: {}\n", str);
+
+                // FIXME - save attachment
             }
         }
+
+        // FIXME - move item to processed folder
 
         return true;
     });

@@ -12,7 +12,8 @@ find_package(CURL REQUIRED)
 set(SRC_FILES
 	src/prospect.cpp
 	src/xml.cpp
-	src/soap.cpp)
+	src/soap.cpp
+	src/b64.cpp)
 
 add_executable(prospect ${SRC_FILES})
 

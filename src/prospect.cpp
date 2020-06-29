@@ -361,6 +361,7 @@ static void find_items(const string& url, const string& folder, const function<b
     field_uri(req, "item:DateTimeReceived");
     field_uri(req, "message:Sender");
     field_uri(req, "message:IsRead");
+    field_uri(req, "item:HasAttachments");
     req.end_element();
     req.end_element();
 
@@ -414,6 +415,7 @@ static void find_items(const string& url, const string& folder, const function<b
             auto subj = get_tag_content(find_tag(c, types_ns, "Subject"));
             auto received = get_tag_content(find_tag(c, types_ns, "DateTimeReceived"));
             bool read = get_tag_content(find_tag(c, types_ns, "IsRead")) == "true";
+            bool has_attachments = get_tag_content(find_tag(c, types_ns, "HasAttachments")) == "true";
 
             auto sender = find_tag(c, types_ns, "Sender");
             auto sender_mailbox = find_tag(sender, types_ns, "Mailbox");
@@ -421,7 +423,7 @@ static void find_items(const string& url, const string& folder, const function<b
             auto sender_name = get_tag_content(find_tag(sender_mailbox, types_ns, "Name"));
             auto sender_email = get_tag_content(find_tag(sender_mailbox, types_ns, "EmailAddress"));
 
-            folder_item item(id, subj, received, read, sender_name, sender_email);
+            folder_item item(id, subj, received, read, sender_name, sender_email, has_attachments);
 
             return func(item);
         });
@@ -458,8 +460,8 @@ static void main2() {
     const auto& dir = find_folder(inbox.id, "Juno", folders);
 
     find_items(settings.at("ExternalEwsUrl"), dir.id, [](const folder_item& item) {
-        fmt::print("Message {}, subject {}, received {}, read {}, sender {} <{}>\n", item.id, item.subject, item.received,
-                   item.read, item.sender_name, item.sender_email);
+        fmt::print("Message {}, subject {}, received {}, read {}, has attachments {}, sender {} <{}>\n", item.id, item.subject,
+                   item.received, item.read, item.has_attachments, item.sender_name, item.sender_email);
 
         return true;
     });

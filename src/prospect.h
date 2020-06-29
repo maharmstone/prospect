@@ -152,6 +152,7 @@ public:
     std::vector<folder> find_folders();
     void find_items(const std::string& folder, const std::function<bool(const folder_item&)>& func);
     std::vector<attachment> get_attachments(const std::string& item_id);
+    std::string read_attachment(const std::string& id);
 
 private:
     std::string url;

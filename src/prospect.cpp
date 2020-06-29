@@ -264,7 +264,7 @@ static void field_uri(xml_writer& req, const string& uri) {
     req.end_element();
 }
 
-std::vector<folder> prospect::find_folders() {
+vector<folder> prospect::find_folders() {
     soap s;
     xml_writer req;
 
@@ -453,7 +453,7 @@ void prospect::find_items(const string& folder, const function<bool(const folder
     xmlFreeDoc(doc);
 }
 
-std::vector<attachment> prospect::get_attachments(const std::string& item_id) {
+vector<attachment> prospect::get_attachments(const string& item_id) {
     soap s;
     xml_writer req;
 
@@ -534,6 +534,65 @@ std::vector<attachment> prospect::get_attachments(const std::string& item_id) {
     return v;
 }
 
+string prospect::read_attachment(const string& id) {
+    soap s;
+    xml_writer req;
+
+
+    req.start_document();
+    req.start_element("m:GetAttachment");
+
+    req.start_element("m:AttachmentIds");
+    req.start_element("t:AttachmentId");
+    req.attribute("Id", id);
+    req.end_element();
+    req.end_element();
+
+    req.end_element();
+
+    req.end_document();
+
+    auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw runtime_error("Could not parse response.");
+
+    string content;
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "GetAttachmentResponse");
+
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto ffrm = find_tag(response_messages, messages_ns, "GetAttachmentResponseMessage");
+
+        auto response_class = get_prop(ffrm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+
+            throw runtime_error("GetAttachment failed (" + response_class + ", " + response_code + ").");
+        }
+
+        auto attachments = find_tag(ffrm, messages_ns, "Attachments");
+
+        auto file_att = find_tag(attachments, types_ns, "FileAttachment");
+
+        content = get_tag_content(find_tag(file_att, types_ns, "Content"));
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
+
+    // FIXME - translate from base-64
+
+    return content;
+}
+
 static void main2() {
     prospect p;
 
@@ -559,6 +618,10 @@ static void main2() {
 
             for (const auto& att : attachments) {
                 fmt::print("Attachment: ID {}, name {}, size {}, modified {}\n", att.id, att.name, att.size, att.modified);
+
+                auto str = p.read_attachment(att.id);
+
+                fmt::print("Content: {}\n", str);
             }
         }
 

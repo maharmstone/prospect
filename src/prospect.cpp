@@ -539,7 +539,6 @@ string prospect::read_attachment(const string& id) {
     soap s;
     xml_writer req;
 
-
     req.start_document();
     req.start_element("m:GetAttachment");
 
@@ -592,6 +591,58 @@ string prospect::read_attachment(const string& id) {
     return b64decode(content);
 }
 
+void prospect::move_item(const string& id, const string& folder) {
+    soap s;
+    xml_writer req;
+
+    req.start_document();
+    req.start_element("m:MoveItem");
+
+    req.start_element("m:ToFolderId");
+    req.start_element("t:FolderId");
+    req.attribute("Id", folder);
+    req.end_element();
+    req.end_element();
+
+    req.start_element("m:ItemIds");
+    req.start_element("t:ItemId");
+    req.attribute("Id", id);
+    req.end_element();
+    req.end_element();
+
+    req.end_element();
+
+    req.end_document();
+
+    auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw runtime_error("Could not parse response.");
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "MoveItemResponse");
+
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto ffrm = find_tag(response_messages, messages_ns, "MoveItemResponseMessage");
+
+        auto response_class = get_prop(ffrm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+
+            throw runtime_error("MoveItem failed (" + response_class + ", " + response_code + ").");
+        }
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
+}
+
 static void main2() {
     prospect p;
 
@@ -607,6 +658,7 @@ static void main2() {
     const auto& inbox = find_inbox(folders);
 
     const auto& dir = find_folder(inbox.id, "Juno", folders);
+    const auto& processed_dir = find_folder(dir.id, "processed", folders); // FIXME - create if this doesn't exist
 
     p.find_items(dir.id, [&](const folder_item& item) {
         fmt::print("Message {}, subject {}, received {}, read {}, has attachments {}, sender {} <{}>\n", item.id, item.subject,
@@ -626,7 +678,7 @@ static void main2() {
             }
         }
 
-        // FIXME - move item to processed folder
+        p.move_item(item.id, processed_dir.id);
 
         return true;
     });

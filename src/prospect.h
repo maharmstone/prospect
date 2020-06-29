@@ -2,7 +2,9 @@
 
 #include <windows.h>
 #include <string>
+#include <map>
 #include <stdexcept>
+#include <functional>
 
 class folder {
 public:
@@ -127,4 +129,18 @@ public:
     bool read;
     std::string sender_name, sender_email;
     bool has_attachments;
+};
+
+class prospect {
+public:
+    prospect(const std::string_view& domain = "");
+
+    void get_domain_settings(const std::string& url, const std::string& domain, std::map<std::string, std::string>& settings);
+    void get_user_settings(const std::string& url, const std::string& mailbox, std::map<std::string, std::string>& settings);
+    void send_email(const std::string& subject, const std::string& body, const std::string& addressee);
+    std::vector<folder> find_folders();
+    void find_items(const std::string& folder, const std::function<bool(const folder_item&)>& func);
+
+private:
+    std::string url;
 };

@@ -15,6 +15,34 @@ static const string autodiscover_ns = "http://schemas.microsoft.com/exchange/201
 static const string messages_ns = "http://schemas.microsoft.com/exchange/services/2006/messages";
 static const string types_ns = "http://schemas.microsoft.com/exchange/services/2006/types";
 
+static string get_domain_name() {
+    char16_t buf[255];
+    DWORD size = sizeof(buf) / sizeof(char16_t);
+
+    if (!GetComputerNameExW(ComputerNameDnsDomain, (WCHAR*)buf, &size))
+        throw last_error("GetComputerNameEx", GetLastError());
+
+    return utf16_to_utf8(buf);
+}
+
+prospect::prospect(const string_view& domain) {
+    string dom;
+
+    if (domain.empty())
+        dom = get_domain_name();
+    else
+        dom = domain;
+
+    map<string, string> settings{ { "ExternalEwsUrl", "" } };
+
+    get_domain_settings("https://autodiscover." + dom + "/autodiscover/autodiscover.svc", dom, settings);
+
+    if (settings.at("ExternalEwsUrl").empty())
+        throw runtime_error("Could not find value for ExternalEwsUrl.");
+
+    url = settings.at("ExternalEwsUrl");
+}
+
 static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& settings) {
     auto response = find_tag(n, autodiscover_ns, "Response");
 
@@ -43,7 +71,7 @@ static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& 
     });
 }
 
-static void get_user_settings(const string& url, const string& mailbox, map<string, string>& settings) {
+void prospect::get_user_settings(const string& url, const string& mailbox, map<string, string>& settings) {
     soap s;
     xml_writer req;
 
@@ -118,7 +146,7 @@ static void parse_get_domain_settings_response(xmlNodePtr n, map<string, string>
     });
 }
 
-static void get_domain_settings(const string& url, const string& domain, map<string, string>& settings) {
+void prospect::get_domain_settings(const string& url, const string& domain, map<string, string>& settings) {
     soap s;
     xml_writer req;
 
@@ -163,7 +191,7 @@ static void get_domain_settings(const string& url, const string& domain, map<str
     xmlFreeDoc(doc);
 }
 
-static void send_email(const string& url, const string& subject, const string& body, const string& addressee) {
+void prospect::send_email(const string& subject, const string& body, const string& addressee) {
     soap s;
     xml_writer req;
 
@@ -236,7 +264,7 @@ static void field_uri(xml_writer& req, const string& uri) {
     req.end_element();
 }
 
-static vector<folder> find_folders(const string& url) {
+std::vector<folder> prospect::find_folders() {
     soap s;
     xml_writer req;
 
@@ -317,16 +345,6 @@ static vector<folder> find_folders(const string& url) {
     return folders;
 }
 
-static string get_domain_name() {
-    char16_t buf[255];
-    DWORD size = sizeof(buf) / sizeof(char16_t);
-
-    if (!GetComputerNameExW(ComputerNameDnsDomain, (WCHAR*)buf, &size))
-        throw last_error("GetComputerNameEx", GetLastError());
-
-    return utf16_to_utf8(buf);
-}
-
 static const folder& find_inbox(const vector<folder>& folders) {
     for (const auto& f : folders) {
         if (f.display_name == "Inbox")
@@ -345,7 +363,7 @@ static const folder& find_folder(const string_view& parent, const string_view& n
     throw formatted_error("Could not find folder {} with parent {}.", name, parent);
 }
 
-static void find_items(const string& url, const string& folder, const function<bool(const folder_item&)>& func) {
+void prospect::find_items(const string& folder, const function<bool(const folder_item&)>& func) {
     soap s;
     xml_writer req;
 
@@ -436,19 +454,11 @@ static void find_items(const string& url, const string& folder, const function<b
 }
 
 static void main2() {
-    map<string, string> settings{ { "ExternalEwsUrl", "" } };
+    prospect p;
 
-    auto domain = get_domain_name();
+//     p.send_email("Interesting", "The merger is finalized.", "mark.harmstone@" + domain);
 
-    get_domain_settings("https://autodiscover." + domain + "/autodiscover/autodiscover.svc", domain, settings);
-//     get_user_settings("https://autodiscover." + domain + "/autodiscover/autodiscover.svc", "mark.harmstone@" + domain, settings); // FIXME
-
-    if (settings.at("ExternalEwsUrl").empty())
-        throw runtime_error("Could not find value for ExternalEwsUrl.");
-
-//     send_email(settings.at("ExternalEwsUrl"), "Interesting", "The merger is finalized.", "mark.harmstone@" + domain);
-
-    auto folders = find_folders(settings.at("ExternalEwsUrl"));
+    auto folders = p.find_folders();
 
     for (const auto& f : folders) {
         fmt::print("Folder: ID {}, parent {}, change key {}, display name {}, total {}, child folder count {}, unread {}\n",
@@ -459,7 +469,7 @@ static void main2() {
 
     const auto& dir = find_folder(inbox.id, "Juno", folders);
 
-    find_items(settings.at("ExternalEwsUrl"), dir.id, [](const folder_item& item) {
+    p.find_items(dir.id, [](const folder_item& item) {
         fmt::print("Message {}, subject {}, received {}, read {}, has attachments {}, sender {} <{}>\n", item.id, item.subject,
                    item.received, item.read, item.has_attachments, item.sender_name, item.sender_email);
 

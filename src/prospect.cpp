@@ -453,6 +453,87 @@ void prospect::find_items(const string& folder, const function<bool(const folder
     xmlFreeDoc(doc);
 }
 
+std::vector<attachment> prospect::get_attachments(const std::string& item_id) {
+    soap s;
+    xml_writer req;
+
+    req.start_document();
+    req.start_element("m:GetItem");
+
+    req.start_element("m:ItemShape");
+    req.element_text("t:BaseShape", "IdOnly");
+    req.start_element("t:AdditionalProperties");
+    field_uri(req, "item:Attachments");
+    req.end_element();
+    req.end_element();
+
+    req.start_element("m:ItemIds");
+    req.start_element("t:ItemId");
+    req.attribute("Id", item_id);
+    req.end_element();
+    req.end_element();
+
+    req.end_element();
+
+    req.end_document();
+
+    auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw runtime_error("Could not parse response.");
+
+    vector<attachment> v;
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "GetItemResponse");
+
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto ffrm = find_tag(response_messages, messages_ns, "GetItemResponseMessage");
+
+        auto response_class = get_prop(ffrm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+
+            throw runtime_error("GetItem failed (" + response_class + ", " + response_code + ").");
+        }
+
+        auto items_tag = find_tag(ffrm, messages_ns, "Items");
+
+        find_tags(items_tag, types_ns, "Message", [&](xmlNodePtr c) {
+            auto attachments = find_tag(c, types_ns, "Attachments");
+
+            find_tags(attachments, types_ns, "FileAttachment", [&](xmlNodePtr c) {
+                bool is_inline = get_tag_content(find_tag(c, types_ns, "IsInline")) == "true";
+                bool is_contact_photo = get_tag_content(find_tag(c, types_ns, "IsContactPhoto")) == "true";
+
+                if (!is_inline && !is_contact_photo) {
+                    auto id = get_prop(find_tag(c, types_ns, "AttachmentId"), "Id");
+                    auto name = get_tag_content(find_tag(c, types_ns, "Name"));
+                    auto size = stoull(get_tag_content(find_tag(c, types_ns, "Size")));
+                    auto modified = get_tag_content(find_tag(c, types_ns, "LastModifiedTime"));
+
+                    v.emplace_back(id, name, size, modified);
+                }
+
+                return true;
+            });
+
+            return true;
+        });
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
+
+    return v;
+}
+
 static void main2() {
     prospect p;
 
@@ -469,9 +550,17 @@ static void main2() {
 
     const auto& dir = find_folder(inbox.id, "Juno", folders);
 
-    p.find_items(dir.id, [](const folder_item& item) {
+    p.find_items(dir.id, [&](const folder_item& item) {
         fmt::print("Message {}, subject {}, received {}, read {}, has attachments {}, sender {} <{}>\n", item.id, item.subject,
                    item.received, item.read, item.has_attachments, item.sender_name, item.sender_email);
+
+        if (item.has_attachments) {
+            auto attachments = p.get_attachments(item.id);
+
+            for (const auto& att : attachments) {
+                fmt::print("Attachment: ID {}, name {}, size {}, modified {}\n", att.id, att.name, att.size, att.modified);
+            }
+        }
 
         return true;
     });

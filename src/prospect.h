@@ -131,6 +131,17 @@ public:
     bool has_attachments;
 };
 
+class attachment {
+public:
+    attachment(const std::string_view& id, const std::string_view& name, size_t size, const std::string_view& modified) :
+               id(id), name(name), size(size), modified(modified) {
+    }
+
+    std::string id, name;
+    size_t size;
+    std::string modified;
+};
+
 class prospect {
 public:
     prospect(const std::string_view& domain = "");
@@ -140,6 +151,7 @@ public:
     void send_email(const std::string& subject, const std::string& body, const std::string& addressee);
     std::vector<folder> find_folders();
     void find_items(const std::string& folder, const std::function<bool(const folder_item&)>& func);
+    std::vector<attachment> get_attachments(const std::string& item_id);
 
 private:
     std::string url;

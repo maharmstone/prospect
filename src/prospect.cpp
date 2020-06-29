@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <map>
+#include "prospect.h"
 #include "xml.h"
 #include "soap.h"
 
@@ -308,16 +309,28 @@ static vector<folder> find_folders(const string& url) {
     return folders;
 }
 
+static string get_domain_name() {
+    char16_t buf[255];
+    DWORD size = sizeof(buf) / sizeof(char16_t);
+
+    if (!GetComputerNameExW(ComputerNameDnsDomain, (WCHAR*)buf, &size))
+        throw last_error("GetComputerNameEx", GetLastError());
+
+    return utf16_to_utf8(buf);
+}
+
 static void main2() {
     map<string, string> settings{ { "ExternalEwsUrl", "" } };
 
-    get_domain_settings("https://autodiscover.boltonft.nhs.uk/autodiscover/autodiscover.svc", "boltonft.nhs.uk", settings);
-//     get_user_settings("https://autodiscover.boltonft.nhs.uk/autodiscover/autodiscover.svc", "mark.harmstone@boltonft.nhs.uk", settings); // FIXME
+    auto domain = get_domain_name();
+
+    get_domain_settings("https://autodiscover." + domain + "/autodiscover/autodiscover.svc", domain, settings);
+//     get_user_settings("https://autodiscover." + domain + "/autodiscover/autodiscover.svc", "mark.harmstone@" + domain, settings); // FIXME
 
     if (settings.at("ExternalEwsUrl").empty())
         throw runtime_error("Could not find value for ExternalEwsUrl.");
 
-//     send_email(settings.at("ExternalEwsUrl"), "Interesting", "The merger is finalized.", "mark.harmstone@boltonft.nhs.uk");
+//     send_email(settings.at("ExternalEwsUrl"), "Interesting", "The merger is finalized.", "mark.harmstone@" + domain);
 
     auto folders = find_folders(settings.at("ExternalEwsUrl"));
 

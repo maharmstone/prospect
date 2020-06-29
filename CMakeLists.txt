@@ -15,8 +15,12 @@ set(SRC_FILES
 	src/soap.cpp)
 
 add_executable(prospect ${SRC_FILES})
+
+find_package(fmt REQUIRED)
+
 target_link_libraries(prospect ${LIBXML2_LIBRARIES})
 target_link_libraries(prospect ${CURL_LIBRARIES})
+target_link_libraries(prospect fmt::fmt-header-only)
 
 target_include_directories(prospect PUBLIC "${LIBXML2_INCLUDE_DIR}")
 target_include_directories(prospect PUBLIC "${CURL_INCLUDE_DIRS}")

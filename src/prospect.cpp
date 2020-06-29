@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <map>
+#include <fmt/format.h>
 #include "prospect.h"
 #include "xml.h"
 #include "soap.h"
@@ -332,9 +333,8 @@ static void main2() {
     auto folders = find_folders(settings.at("ExternalEwsUrl"));
 
     for (const auto& f : folders) {
-        printf("Folder: ID %s, parent %s, change key %s, display name %s, total %u, child folder count %u, unread %u\n",
-               f.id.c_str(), f.parent.c_str(), f.change_key.c_str(), f.display_name.c_str(), f.total_count,
-               f.child_folder_count, f.unread_count);
+        fmt::print("Folder: ID {}, parent {}, change key {}, display name {}, total {}, child folder count {}, unread {}\n",
+                   f.id, f.parent, f.change_key, f.display_name, f.total_count, f.child_folder_count, f.unread_count);
     }
 }
 

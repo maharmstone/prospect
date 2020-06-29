@@ -98,6 +98,77 @@ static void get_user_settings(const string& url, const string& mailbox, map<stri
     xmlFreeDoc(doc);
 }
 
+static void parse_get_domain_settings_response(xmlNodePtr n, map<string, string>& settings) {
+    auto response = find_tag(n, autodiscover_ns, "Response");
+
+    auto error_code = get_tag_content(find_tag(response, autodiscover_ns, "ErrorCode"));
+
+    if (error_code != "NoError") {
+        auto error_msg = get_tag_content(find_tag(response, autodiscover_ns, "ErrorMessage"));
+
+        throw runtime_error("GetDomainSettings failed (" + error_code + ", " + error_msg + ").");
+    }
+
+    auto user_responses = find_tag(response, autodiscover_ns, "DomainResponses");
+
+    auto user_response = find_tag(user_responses, autodiscover_ns, "DomainResponse");
+
+    auto user_settings = find_tag(user_response, autodiscover_ns, "DomainSettings");
+
+    find_tags(user_settings, autodiscover_ns, "DomainSetting", [&](xmlNodePtr c) {
+        auto name = get_tag_content(find_tag(c, autodiscover_ns, "Name"));
+        auto value = get_tag_content(find_tag(c, autodiscover_ns, "Value"));
+
+        if (settings.count(name) != 0)
+            settings[name] = value;
+    });
+}
+
+static void get_domain_settings(const string& url, const string& domain, map<string, string>& settings) {
+    soap s;
+    xml_writer req;
+
+    static const string action = "http://schemas.microsoft.com/exchange/2010/Autodiscover/Autodiscover/GetDomainSettings";
+
+    req.start_document();
+    req.start_element("a:GetDomainSettingsRequestMessage");
+    req.start_element("a:Request");
+
+    req.start_element("a:Domains");
+    req.element_text("a:Domain", domain);
+    req.end_element();
+
+    req.start_element("a:RequestedSettings");
+
+    for (const auto& setting : settings) {
+        req.element_text("a:Setting", setting.first);
+    }
+
+    req.end_element();
+
+    req.end_element();
+    req.end_element();
+    req.end_document();
+
+    string header = "<a:RequestedServerVersion>Exchange2010</a:RequestedServerVersion><wsa:Action>" + action + "</wsa:Action><wsa:To>" + url + "</wsa:To>";
+
+    auto ret = s.get(url, "http://schemas.microsoft.com/exchange/2010/Autodiscover/Autodiscover/GetDomainSettings", header, req.dump());
+
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw runtime_error("Could not parse response.");
+
+    try {
+        parse_get_domain_settings_response(find_tag(xmlDocGetRootElement(doc), autodiscover_ns, "GetDomainSettingsResponseMessage"), settings);
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
+}
+
 static void send_email(const string& url, const string& subject, const string& body, const string& addressee) {
     soap s;
     xml_writer req;
@@ -238,16 +309,17 @@ static vector<folder> find_folders(const string& url) {
 }
 
 static void main2() {
-    map<string, string> settings{ { "InternalEwsUrl", "" } };
+    map<string, string> settings{ { "ExternalEwsUrl", "" } };
 
-    get_user_settings("https://autodiscover.boltonft.nhs.uk/autodiscover/autodiscover.svc", "mark.harmstone@boltonft.nhs.uk", settings); // FIXME
+    get_domain_settings("https://autodiscover.boltonft.nhs.uk/autodiscover/autodiscover.svc", "boltonft.nhs.uk", settings);
+//     get_user_settings("https://autodiscover.boltonft.nhs.uk/autodiscover/autodiscover.svc", "mark.harmstone@boltonft.nhs.uk", settings); // FIXME
 
-    if (settings.at("InternalEwsUrl").empty())
-        throw runtime_error("Could not find value for InternalEwsUrl.");
+    if (settings.at("ExternalEwsUrl").empty())
+        throw runtime_error("Could not find value for ExternalEwsUrl.");
 
-//     send_email(settings.at("InternalEwsUrl"), "Interesting", "The merger is finalized.", "mark.harmstone@boltonft.nhs.uk");
+//     send_email(settings.at("ExternalEwsUrl"), "Interesting", "The merger is finalized.", "mark.harmstone@boltonft.nhs.uk");
 
-    auto folders = find_folders(settings.at("InternalEwsUrl"));
+    auto folders = find_folders(settings.at("ExternalEwsUrl"));
 
     for (const auto& f : folders) {
         printf("Folder: ID %s, change key %s, display name %s, total %u, child folder count %u, unread %u\n",

@@ -39,7 +39,7 @@ target_compile_options(prospect PRIVATE
 	$<$<CXX_COMPILER_ID:MSVC>:
 		/W4>)
 
-set_target_properties(prospect PROPERTIES PUBLIC_HEADER prospect.h)
+set_target_properties(prospect PROPERTIES PUBLIC_HEADER src/prospect.h)
 
 install(TARGETS prospect
 	EXPORT prospect-targets

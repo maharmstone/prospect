@@ -9,7 +9,7 @@ public:
     size_t read(void* ptr, size_t size);
 
 private:
-    std::string create_xml(const std::string& url, const std::string& action, const std::string& header, const std::string& body);
+    std::string create_xml(const std::string& header, const std::string& body);
     std::string extract_response(const std::string_view& ret);
 
     std::string ret;

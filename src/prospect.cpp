@@ -643,6 +643,74 @@ void prospect::move_item(const string& id, const string& folder) {
     xmlFreeDoc(doc);
 }
 
+string prospect::create_folder(const string_view& parent, const string_view& name, const vector<folder>& folders) {
+    for (const auto& f : folders) {
+        if (f.parent == parent && f.display_name == name)
+            return f.id;
+    }
+
+    soap s;
+    xml_writer req;
+
+    req.start_document();
+    req.start_element("m:CreateFolder");
+
+    req.start_element("m:ParentFolderId");
+    req.start_element("t:FolderId");
+    req.attribute("Id", string(parent));
+    req.end_element();
+    req.end_element();
+
+    req.start_element("m:Folders");
+    req.start_element("t:Folder");
+    req.element_text("t:FolderClass", "IPF.Note");
+    req.element_text("t:DisplayName", string(name));
+    req.end_element();
+    req.end_element();
+
+    req.end_element();
+
+    req.end_document();
+
+    auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw runtime_error("Could not parse response.");
+
+    string id;
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "CreateFolderResponse");
+
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto ffrm = find_tag(response_messages, messages_ns, "CreateFolderResponseMessage");
+
+        auto response_class = get_prop(ffrm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+
+            throw runtime_error("CreateFolder failed (" + response_class + ", " + response_code + ").");
+        }
+
+        auto folders = find_tag(ffrm, messages_ns, "Folders");
+
+        auto folder = find_tag(folders, types_ns, "Folder");
+
+        id = get_prop(find_tag(folder, types_ns, "FolderId"), "Id");
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
+
+    return id;
+}
+
 static void main2() {
     prospect p;
 
@@ -658,7 +726,7 @@ static void main2() {
     const auto& inbox = find_inbox(folders);
 
     const auto& dir = find_folder(inbox.id, "Juno", folders);
-    const auto& processed_dir = find_folder(dir.id, "processed", folders); // FIXME - create if this doesn't exist
+    const auto& processed_dir_id = p.create_folder(dir.id, "processed", folders);
 
     p.find_items(dir.id, [&](const folder_item& item) {
         fmt::print("Message {}, subject {}, received {}, read {}, has attachments {}, sender {} <{}>\n", item.id, item.subject,
@@ -678,7 +746,7 @@ static void main2() {
             }
         }
 
-        p.move_item(item.id, processed_dir.id);
+        p.move_item(item.id, processed_dir_id);
 
         return true;
     });

@@ -32,6 +32,8 @@ static string get_domain_name() {
 prospect::prospect(const string_view& domain) {
     string dom;
 
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+
     if (domain.empty())
         dom = get_domain_name();
     else
@@ -45,6 +47,10 @@ prospect::prospect(const string_view& domain) {
         throw runtime_error("Could not find value for ExternalEwsUrl.");
 
     url = settings.at("ExternalEwsUrl");
+}
+
+prospect::~prospect() {
+    curl_global_cleanup();
 }
 
 static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& settings) {
@@ -347,24 +353,6 @@ vector<folder> prospect::find_folders() {
     xmlFreeDoc(doc);
 
     return folders;
-}
-
-static const folder& find_inbox(const vector<folder>& folders) {
-    for (const auto& f : folders) {
-        if (f.display_name == "Inbox")
-            return f;
-    }
-
-    throw runtime_error("Folder \"Inbox\" not found.");
-}
-
-static const folder& find_folder(const string_view& parent, const string_view& name, const vector<folder>& folders) {
-    for (const auto& f : folders) {
-        if (f.parent == parent && f.display_name == name)
-            return f;
-    }
-
-    throw formatted_error("Could not find folder {} with parent {}.", name, parent);
 }
 
 void prospect::find_items(const string& folder, const function<bool(const folder_item&)>& func) {
@@ -714,61 +702,4 @@ string prospect::create_folder(const string_view& parent, const string_view& nam
     return id;
 }
 
-}
-
-static void main2() {
-    prospect::prospect p;
-
-//     p.send_email("Interesting", "The merger is finalized.", "mark.harmstone@" + domain);
-
-    auto folders = p.find_folders();
-
-    for (const auto& f : folders) {
-        fmt::print("Folder: ID {}, parent {}, change key {}, display name {}, total {}, child folder count {}, unread {}\n",
-                   f.id, f.parent, f.change_key, f.display_name, f.total_count, f.child_folder_count, f.unread_count);
-    }
-
-    const auto& inbox = find_inbox(folders);
-
-    const auto& dir = find_folder(inbox.id, "Juno", folders);
-    const auto& processed_dir_id = p.create_folder(dir.id, "processed", folders);
-
-    p.find_items(dir.id, [&](const prospect::folder_item& item) {
-        fmt::print("Message {}, subject {}, received {}, read {}, has attachments {}, sender {} <{}>\n", item.id, item.subject,
-                   item.received, item.read, item.has_attachments, item.sender_name, item.sender_email);
-
-        if (item.has_attachments) {
-            auto attachments = p.get_attachments(item.id);
-
-            for (const auto& att : attachments) {
-                fmt::print("Attachment: ID {}, name {}, size {}, modified {}\n", att.id, att.name, att.size, att.modified);
-
-                auto str = p.read_attachment(att.id);
-
-                fmt::print("Content: {}\n", str);
-
-                // FIXME - save attachment
-            }
-        }
-
-        p.move_item(item.id, processed_dir_id);
-
-        return true;
-    });
-}
-
-int main() {
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-
-    try {
-        main2();
-    } catch (const exception& e) {
-        cerr << e.what() << endl;
-        curl_global_cleanup();
-        return 1;
-    }
-
-    curl_global_cleanup();
-
-    return 0;
 }

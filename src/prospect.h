@@ -5,9 +5,31 @@
 #include <vector>
 #include <functional>
 
+#ifdef _WIN32
+
+#ifdef PROSPECT_EXPORT
+#define PROSPECT __declspec(dllexport)
+#elif !defined(PROSPECT_STATIC)
+#define PROSPECT __declspec(dllimport)
+#else
+#define PROSPECT
+#endif
+
+#else
+
+#ifdef PROSPECT_EXPORT
+#define PROSPECT __attribute__ ((visibility ("default")))
+#elif !defined(PROSPECT_STATIC)
+#define PROSPECT __attribute__ ((dllimport))
+#else
+#define PROSPECT
+#endif
+
+#endif
+
 namespace prospect {
 
-class folder {
+class PROSPECT folder {
 public:
     folder(const std::string_view& id, const std::string_view& parent, const std::string_view& change_key,
            const std::string_view& display_name, unsigned int total_count, unsigned int child_folder_count,
@@ -20,7 +42,7 @@ public:
     unsigned int total_count, child_folder_count, unread_count;
 };
 
-class folder_item {
+class PROSPECT folder_item {
 public:
     folder_item(const std::string_view& id, const std::string_view& subject, const std::string_view& received,
                 bool read, const std::string_view& sender_name, const std::string_view& sender_email,
@@ -35,7 +57,7 @@ public:
     bool has_attachments;
 };
 
-class attachment {
+class PROSPECT attachment {
 public:
     attachment(const std::string_view& id, const std::string_view& name, size_t size, const std::string_view& modified) :
                id(id), name(name), size(size), modified(modified) {
@@ -46,9 +68,10 @@ public:
     std::string modified;
 };
 
-class prospect {
+class PROSPECT prospect {
 public:
     prospect(const std::string_view& domain = "");
+    ~prospect();
 
     void get_domain_settings(const std::string& url, const std::string& domain, std::map<std::string, std::string>& settings);
     void get_user_settings(const std::string& url, const std::string& mailbox, std::map<std::string, std::string>& settings);

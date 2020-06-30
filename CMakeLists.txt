@@ -41,6 +41,10 @@ target_compile_options(prospect PRIVATE
 
 set_target_properties(prospect PROPERTIES PUBLIC_HEADER src/prospect.h)
 
+if(WIN32 AND NOT MSVC)
+	target_link_options(prospect PUBLIC -static -static-libgcc -static-libstdc++)
+endif()
+
 install(TARGETS prospect
 	EXPORT prospect-targets
 	RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"

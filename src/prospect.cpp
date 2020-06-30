@@ -9,6 +9,7 @@
 #include "xml.h"
 #include "soap.h"
 #include "b64.h"
+#include "misc.h"
 
 using namespace std;
 

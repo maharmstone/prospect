@@ -5,6 +5,8 @@
 #include <vector>
 #include <functional>
 
+namespace prospect {
+
 class folder {
 public:
     folder(const std::string_view& id, const std::string_view& parent, const std::string_view& change_key,
@@ -60,4 +62,6 @@ public:
 
 private:
     std::string url;
+};
+
 };

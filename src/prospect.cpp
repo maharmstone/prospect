@@ -17,6 +17,8 @@ static const string autodiscover_ns = "http://schemas.microsoft.com/exchange/201
 static const string messages_ns = "http://schemas.microsoft.com/exchange/services/2006/messages";
 static const string types_ns = "http://schemas.microsoft.com/exchange/services/2006/types";
 
+namespace prospect {
+
 static string get_domain_name() {
     char16_t buf[255];
     DWORD size = sizeof(buf) / sizeof(char16_t);
@@ -712,8 +714,10 @@ string prospect::create_folder(const string_view& parent, const string_view& nam
     return id;
 }
 
+}
+
 static void main2() {
-    prospect p;
+    prospect::prospect p;
 
 //     p.send_email("Interesting", "The merger is finalized.", "mark.harmstone@" + domain);
 
@@ -729,7 +733,7 @@ static void main2() {
     const auto& dir = find_folder(inbox.id, "Juno", folders);
     const auto& processed_dir_id = p.create_folder(dir.id, "processed", folders);
 
-    p.find_items(dir.id, [&](const folder_item& item) {
+    p.find_items(dir.id, [&](const prospect::folder_item& item) {
         fmt::print("Message {}, subject {}, received {}, read {}, has attachments {}, sender {} <{}>\n", item.id, item.subject,
                    item.received, item.read, item.has_attachments, item.sender_name, item.sender_email);
 

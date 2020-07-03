@@ -274,7 +274,7 @@ static void field_uri(xml_writer& req, const string& uri) {
     req.end_element();
 }
 
-vector<folder> prospect::find_folders() {
+vector<folder> prospect::find_folders(const string& mailbox) {
     soap s;
     xml_writer req;
 
@@ -294,6 +294,13 @@ vector<folder> prospect::find_folders() {
     req.start_element("m:ParentFolderIds");
     req.start_element("t:DistinguishedFolderId");
     req.attribute("Id", "root");
+
+    if (!mailbox.empty()) {
+        req.start_element("t:Mailbox");
+        req.element_text("t:EmailAddress", mailbox);
+        req.end_element();
+    }
+
     req.end_element();
 
     req.end_element();

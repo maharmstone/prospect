@@ -201,9 +201,12 @@ void prospect::get_domain_settings(const string& url, const string& domain, map<
     xmlFreeDoc(doc);
 }
 
-void prospect::send_email(const string& subject, const string& body, const string& addressee) {
+void prospect::send_email(const string& subject, const string& body, const vector<string>& addressees) {
     soap s;
     xml_writer req;
+
+    // FIXME - CC'ing
+    // FIXME - BCC'ing
 
     req.start_document();
     req.start_element("m:CreateItem");
@@ -226,9 +229,13 @@ void prospect::send_email(const string& subject, const string& body, const strin
     req.end_element();
 
     req.start_element("t:ToRecipients");
-    req.start_element("t:Mailbox");
-    req.element_text("t:EmailAddress", addressee);
-    req.end_element();
+
+    for (const auto& ad : addressees) {
+        req.start_element("t:Mailbox");
+        req.element_text("t:EmailAddress", ad);
+        req.end_element();
+    }
+
     req.end_element();
 
     req.end_element();

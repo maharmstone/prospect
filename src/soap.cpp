@@ -75,7 +75,7 @@ string soap::get(const string& url, const string& action, const string& header, 
 
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 
-        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_NTLM);
+        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_NEGOTIATE);
         curl_easy_setopt(curl, CURLOPT_USERPWD, ":");
 
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);

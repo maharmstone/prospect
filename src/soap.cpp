@@ -28,8 +28,8 @@ static size_t curl_write_cb(char* ptr, size_t size, size_t nmemb, void* userdata
     return size * nmemb;
 }
 
-string soap::create_xml(const string& header, const string& body) {
-    string body2 = body;
+string soap::create_xml(const string_view& header, const string_view& body) {
+    string body2{body};
     xml_writer req;
 
     if (body2.length() > 2 && body2[0] == '<' && body2[1] == '?') {

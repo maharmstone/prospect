@@ -71,10 +71,10 @@ void xml_writer::attribute(const string& name, const string& value) {
         throw runtime_error("xmlTextWriterWriteAttribute failed (error " + to_string(rc) + ")");
 }
 
-void xml_writer::raw(const std::string& s) {
-    int rc = xmlTextWriterWriteRaw(writer, BAD_CAST s.c_str());
+void xml_writer::raw(const std::string_view& s) {
+    int rc = xmlTextWriterWriteRawLen(writer, BAD_CAST s.data(), (int)s.length());
     if (rc < 0)
-        throw runtime_error("xmlTextWriterWriteRaw failed (error " + to_string(rc) + ")");
+        throw runtime_error("xmlTextWriterWriteRawLen failed (error " + to_string(rc) + ")");
 }
 
 xmlNodePtr find_tag(xmlNodePtr root, const string& ns, const string& name) {

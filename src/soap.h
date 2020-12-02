@@ -14,6 +14,6 @@ private:
     std::string extract_response(const std::string_view& ret);
 
     std::string ret;
-    std::string_view payload;
+    std::string payload;
     size_t payload_offset = 0;
 };

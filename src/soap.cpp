@@ -127,6 +127,8 @@ string soap::get(const string& url, const string& action, const string& header, 
         curl_easy_setopt(curl, CURLOPT_SEEKFUNCTION, curl_seek_cb);
         curl_easy_setopt(curl, CURLOPT_SEEKDATA, this);
 
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, payload.length());
+
         chunk = curl_slist_append(chunk, "Content-Type: text/xml;charset=UTF-8");
         res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
         if (res != CURLE_OK)

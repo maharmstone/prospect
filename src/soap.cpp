@@ -59,8 +59,44 @@ string soap::create_xml(const string_view& header, const string_view& body) {
     return req.dump();
 }
 
+static int curl_seek_cb(void* userdata, curl_off_t offset, int origin) {
+    auto& s = *(soap*)userdata;
+
+    return s.seek(offset, origin);
+}
+
+int soap::seek(curl_off_t offset, int origin) {
+    switch (origin) {
+        case SEEK_SET:
+            if (offset < 0 || (size_t)offset > payload.length())
+                return CURL_SEEKFUNC_FAIL;
+
+            payload_offset = offset;
+
+            return CURL_SEEKFUNC_OK;
+
+        case SEEK_CUR:
+            if ((int64_t)payload_offset + offset < 0 || (size_t)(payload_offset + offset) > payload.length())
+                return CURL_SEEKFUNC_FAIL;
+
+            payload_offset += offset;
+
+            return CURL_SEEKFUNC_OK;
+
+        case SEEK_END:
+            if ((int64_t)payload.length() + offset < 0 || offset > 0)
+                return CURL_SEEKFUNC_FAIL;
+
+            payload_offset = payload.length() + offset;
+
+            return CURL_SEEKFUNC_OK;
+
+        default:
+            return CURL_SEEKFUNC_FAIL;
+    }
+}
+
 string soap::get(const string& url, const string& action, const string& header, const string& body) {
-    auto payload = create_xml(header, body);
     string soap_action = "SOAPAction: " + action;
 
     CURLcode res;
@@ -68,6 +104,8 @@ string soap::get(const string& url, const string& action, const string& header, 
 
     if (!curl)
         throw runtime_error("Failed to initialize cURL.");
+
+    payload = create_xml(header, body);
 
     try {
         struct curl_slist *chunk = NULL;
@@ -86,6 +124,8 @@ string soap::get(const string& url, const string& action, const string& header, 
         curl_easy_setopt(curl, CURLOPT_READDATA, this);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_cb);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
+        curl_easy_setopt(curl, CURLOPT_SEEKFUNCTION, curl_seek_cb);
+        curl_easy_setopt(curl, CURLOPT_SEEKDATA, this);
 
         chunk = curl_slist_append(chunk, "Content-Type: text/xml;charset=UTF-8");
         res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
@@ -98,8 +138,6 @@ string soap::get(const string& url, const string& action, const string& header, 
             if (res != CURLE_OK)
                 throw runtime_error(curl_easy_strerror(res));
         }
-
-        payload_sv = payload;
 
         res = curl_easy_perform(curl);
 
@@ -125,12 +163,12 @@ void soap::write(char* ptr, size_t size) {
 }
 
 size_t soap::read(void* ptr, size_t size) {
-    if (size > payload_sv.length())
-        size = payload_sv.length();
+    if (size > payload.length() - payload_offset)
+        size = payload.length() - payload_offset;
 
-    memcpy(ptr, payload_sv.data(), size);
+    memcpy(ptr, payload.data() + payload_offset, size);
 
-    payload_sv = payload_sv.substr(size);
+    payload_offset += size;
 
     return size;
 }

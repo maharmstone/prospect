@@ -201,12 +201,10 @@ void prospect::get_domain_settings(const string& url, const string& domain, map<
     xmlFreeDoc(doc);
 }
 
-void prospect::send_email(const string& subject, const string& body, const vector<string>& addressees) {
+void prospect::send_email(const string& subject, const string& body, const vector<string>& addressees,
+                          const vector<string>& cc, const vector<string>& bcc) {
     soap s;
     xml_writer req;
-
-    // FIXME - CC'ing
-    // FIXME - BCC'ing
 
     req.start_document();
     req.start_element("m:CreateItem");
@@ -228,15 +226,41 @@ void prospect::send_email(const string& subject, const string& body, const vecto
     req.text(body);
     req.end_element();
 
-    req.start_element("t:ToRecipients");
+    if (!addressees.empty()) {
+        req.start_element("t:ToRecipients");
 
-    for (const auto& ad : addressees) {
-        req.start_element("t:Mailbox");
-        req.element_text("t:EmailAddress", ad);
+        for (const auto& ad : addressees) {
+            req.start_element("t:Mailbox");
+            req.element_text("t:EmailAddress", ad);
+            req.end_element();
+        }
+
         req.end_element();
     }
 
-    req.end_element();
+    if (!cc.empty()) {
+        req.start_element("t:CcRecipients");
+
+        for (const auto& ad : cc) {
+            req.start_element("t:Mailbox");
+            req.element_text("t:EmailAddress", ad);
+            req.end_element();
+        }
+
+        req.end_element();
+    }
+
+    if (!addressees.empty()) {
+        req.start_element("t:BccRecipients");
+
+        for (const auto& ad : bcc) {
+            req.start_element("t:Mailbox");
+            req.element_text("t:EmailAddress", ad);
+            req.end_element();
+        }
+
+        req.end_element();
+    }
 
     req.end_element();
 

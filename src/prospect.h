@@ -80,7 +80,8 @@ public:
 
     void get_domain_settings(const std::string& url, const std::string& domain, std::map<std::string, std::string>& settings);
     void get_user_settings(const std::string& url, const std::string& mailbox, std::map<std::string, std::string>& settings);
-    void send_email(const std::string& subject, const std::string& body, const std::vector<std::string>& addressee);
+    void send_email(const std::string& subject, const std::string& body, const std::vector<std::string>& addressee,
+                    const std::vector<std::string>& cc, const std::vector<std::string>& bcc);
     std::vector<folder> find_folders(const std::string& mailbox = "");
     void find_items(const std::string& folder, const std::function<bool(const folder_item&)>& func);
     std::vector<attachment> get_attachments(const std::string& item_id);

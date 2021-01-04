@@ -103,6 +103,10 @@ string get_tag_content(xmlNodePtr n) {
     return ret;
 }
 
+string find_tag_content(xmlNodePtr root, const string& ns, const string& name) {
+    return get_tag_content(find_tag(root, ns, name));
+}
+
 void find_tags(xmlNodePtr n, const string& ns, const string& tag, const function<bool(xmlNodePtr)>& func) {
     auto c = n->children;
 

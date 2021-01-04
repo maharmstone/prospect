@@ -56,10 +56,10 @@ prospect::~prospect() {
 static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& settings) {
     auto response = find_tag(n, autodiscover_ns, "Response");
 
-    auto error_code = get_tag_content(find_tag(response, autodiscover_ns, "ErrorCode"));
+    auto error_code = find_tag_content(response, autodiscover_ns, "ErrorCode");
 
     if (error_code != "NoError") {
-        auto error_msg = get_tag_content(find_tag(response, autodiscover_ns, "ErrorMessage"));
+        auto error_msg = find_tag_content(response, autodiscover_ns, "ErrorMessage");
 
         throw runtime_error("GetUserSettings failed (" + error_code + ", " + error_msg + ").");
     }
@@ -71,8 +71,8 @@ static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& 
     auto user_settings = find_tag(user_response, autodiscover_ns, "UserSettings");
 
     find_tags(user_settings, autodiscover_ns, "UserSetting", [&](xmlNodePtr c) {
-        auto name = get_tag_content(find_tag(c, autodiscover_ns, "Name"));
-        auto value = get_tag_content(find_tag(c, autodiscover_ns, "Value"));
+        auto name = find_tag_content(c, autodiscover_ns, "Name");
+        auto value = find_tag_content(c, autodiscover_ns, "Value");
 
         if (settings.count(name) != 0)
             settings[name] = value;
@@ -131,10 +131,10 @@ void prospect::get_user_settings(const string& url, const string& mailbox, map<s
 static void parse_get_domain_settings_response(xmlNodePtr n, map<string, string>& settings) {
     auto response = find_tag(n, autodiscover_ns, "Response");
 
-    auto error_code = get_tag_content(find_tag(response, autodiscover_ns, "ErrorCode"));
+    auto error_code = find_tag_content(response, autodiscover_ns, "ErrorCode");
 
     if (error_code != "NoError") {
-        auto error_msg = get_tag_content(find_tag(response, autodiscover_ns, "ErrorMessage"));
+        auto error_msg = find_tag_content(response, autodiscover_ns, "ErrorMessage");
 
         throw runtime_error("GetDomainSettings failed (" + error_code + ", " + error_msg + ").");
     }
@@ -146,8 +146,8 @@ static void parse_get_domain_settings_response(xmlNodePtr n, map<string, string>
     auto user_settings = find_tag(user_response, autodiscover_ns, "DomainSettings");
 
     find_tags(user_settings, autodiscover_ns, "DomainSetting", [&](xmlNodePtr c) {
-        auto name = get_tag_content(find_tag(c, autodiscover_ns, "Name"));
-        auto value = get_tag_content(find_tag(c, autodiscover_ns, "Value"));
+        auto name = find_tag_content(c, autodiscover_ns, "Name");
+        auto value = find_tag_content(c, autodiscover_ns, "Value");
 
         if (settings.count(name) != 0)
             settings[name] = value;
@@ -287,7 +287,7 @@ void prospect::send_email(const string& subject, const string& body, const vecto
         auto response_class = get_prop(cirm, "ResponseClass");
 
         if (response_class != "Success") {
-            auto response_code = get_tag_content(find_tag(cirm, messages_ns, "ResponseCode"));
+            auto response_code = find_tag_content(cirm, messages_ns, "ResponseCode");
 
             throw runtime_error("CreateItem failed (" + response_class + ", " + response_code + ").");
         }
@@ -359,7 +359,7 @@ vector<folder> prospect::find_folders(const string& mailbox) {
         auto response_class = get_prop(ffrm, "ResponseClass");
 
         if (response_class != "Success") {
-            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+            auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
 
             throw runtime_error("FindFolder failed (" + response_class + ", " + response_code + ").");
         }
@@ -374,10 +374,10 @@ vector<folder> prospect::find_folders(const string& mailbox) {
             auto id = get_prop(folder_id, "Id");
             auto change_key = get_prop(folder_id, "ChangeKey");
 
-            auto display_name = get_tag_content(find_tag(c, types_ns, "DisplayName"));
-            auto total_count = stoul(get_tag_content(find_tag(c, types_ns, "TotalCount")));
-            auto child_folder_count = stoul(get_tag_content(find_tag(c, types_ns, "ChildFolderCount")));
-            auto unread_count = stoul(get_tag_content(find_tag(c, types_ns, "UnreadCount")));
+            auto display_name = find_tag_content(c, types_ns, "DisplayName");
+            auto total_count = stoul(find_tag_content(c, types_ns, "TotalCount"));
+            auto child_folder_count = stoul(find_tag_content(c, types_ns, "ChildFolderCount"));
+            auto unread_count = stoul(find_tag_content(c, types_ns, "UnreadCount"));
 
             folders.emplace_back(id, parent, change_key, display_name, total_count, child_folder_count, unread_count);
 
@@ -449,7 +449,7 @@ void prospect::find_items(const string& folder, const function<bool(const folder
         auto response_class = get_prop(ffrm, "ResponseClass");
 
         if (response_class != "Success") {
-            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+            auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
 
             throw runtime_error("FindItem failed (" + response_class + ", " + response_code + ").");
         }
@@ -460,16 +460,16 @@ void prospect::find_items(const string& folder, const function<bool(const folder
 
         find_tags(items_tag, types_ns, "Message", [&](xmlNodePtr c) {
             auto id = get_prop(find_tag(c, types_ns, "ItemId"), "Id");
-            auto subj = get_tag_content(find_tag(c, types_ns, "Subject"));
-            auto received = get_tag_content(find_tag(c, types_ns, "DateTimeReceived"));
-            bool read = get_tag_content(find_tag(c, types_ns, "IsRead")) == "true";
-            bool has_attachments = get_tag_content(find_tag(c, types_ns, "HasAttachments")) == "true";
+            auto subj = find_tag_content(c, types_ns, "Subject");
+            auto received = find_tag_content(c, types_ns, "DateTimeReceived");
+            bool read = find_tag_content(c, types_ns, "IsRead") == "true";
+            bool has_attachments = find_tag_content(c, types_ns, "HasAttachments") == "true";
 
             auto sender = find_tag(c, types_ns, "Sender");
             auto sender_mailbox = find_tag(sender, types_ns, "Mailbox");
 
-            auto sender_name = get_tag_content(find_tag(sender_mailbox, types_ns, "Name"));
-            auto sender_email = get_tag_content(find_tag(sender_mailbox, types_ns, "EmailAddress"));
+            auto sender_name = find_tag_content(sender_mailbox, types_ns, "Name");
+            auto sender_email = find_tag_content(sender_mailbox, types_ns, "EmailAddress");
 
             folder_item item(id, subj, received, read, sender_name, sender_email, has_attachments);
 
@@ -526,7 +526,7 @@ vector<attachment> prospect::get_attachments(const string& item_id) {
         auto response_class = get_prop(ffrm, "ResponseClass");
 
         if (response_class != "Success") {
-            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+            auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
 
             throw runtime_error("GetItem failed (" + response_class + ", " + response_code + ").");
         }
@@ -537,14 +537,14 @@ vector<attachment> prospect::get_attachments(const string& item_id) {
             auto attachments = find_tag(c, types_ns, "Attachments");
 
             find_tags(attachments, types_ns, "FileAttachment", [&](xmlNodePtr c) {
-                bool is_inline = get_tag_content(find_tag(c, types_ns, "IsInline")) == "true";
-                bool is_contact_photo = get_tag_content(find_tag(c, types_ns, "IsContactPhoto")) == "true";
+                bool is_inline = find_tag_content(c, types_ns, "IsInline") == "true";
+                bool is_contact_photo = find_tag_content(c, types_ns, "IsContactPhoto") == "true";
 
                 if (!is_inline && !is_contact_photo) {
                     auto id = get_prop(find_tag(c, types_ns, "AttachmentId"), "Id");
-                    auto name = get_tag_content(find_tag(c, types_ns, "Name"));
-                    auto size = stoull(get_tag_content(find_tag(c, types_ns, "Size")));
-                    auto modified = get_tag_content(find_tag(c, types_ns, "LastModifiedTime"));
+                    auto name = find_tag_content(c, types_ns, "Name");
+                    auto size = stoull(find_tag_content(c, types_ns, "Size"));
+                    auto modified = find_tag_content(c, types_ns, "LastModifiedTime");
 
                     v.emplace_back(id, name, size, modified);
                 }
@@ -600,7 +600,7 @@ string prospect::read_attachment(const string& id) {
         auto response_class = get_prop(ffrm, "ResponseClass");
 
         if (response_class != "Success") {
-            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+            auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
 
             throw runtime_error("GetAttachment failed (" + response_class + ", " + response_code + ").");
         }
@@ -609,7 +609,7 @@ string prospect::read_attachment(const string& id) {
 
         auto file_att = find_tag(attachments, types_ns, "FileAttachment");
 
-        content = get_tag_content(find_tag(file_att, types_ns, "Content"));
+        content = find_tag_content(file_att, types_ns, "Content");
     } catch (...) {
         xmlFreeDoc(doc);
         throw;
@@ -660,7 +660,7 @@ void prospect::move_item(const string& id, const string& folder) {
         auto response_class = get_prop(ffrm, "ResponseClass");
 
         if (response_class != "Success") {
-            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+            auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
 
             throw runtime_error("MoveItem failed (" + response_class + ", " + response_code + ").");
         }
@@ -720,7 +720,7 @@ string prospect::create_folder(const string_view& parent, const string_view& nam
         auto response_class = get_prop(ffrm, "ResponseClass");
 
         if (response_class != "Success") {
-            auto response_code = get_tag_content(find_tag(ffrm, messages_ns, "ResponseCode"));
+            auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
 
             throw runtime_error("CreateFolder failed (" + response_class + ", " + response_code + ").");
         }

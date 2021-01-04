@@ -90,21 +90,27 @@ xmlNodePtr find_tag(xmlNodePtr root, const string& ns, const string& name) {
     throw runtime_error("Could not find " + name + " tag");
 }
 
-string get_tag_content(xmlNodePtr n) {
-    auto xc = xmlNodeGetContent(n);
-
-    if (!xc)
-        return "";
-
-    string ret{(char*)xc};
-
-    xmlFree(xc);
-
-    return ret;
-}
-
 string find_tag_content(xmlNodePtr root, const string& ns, const string& name) {
-    return get_tag_content(find_tag(root, ns, name));
+    xmlNodePtr n = root->children;
+
+    while (n) {
+        if (n->type == XML_ELEMENT_NODE && n->ns && !strcmp((char*)n->ns->href, ns.c_str()) && !strcmp((char*)n->name, name.c_str())) {
+            auto xc = xmlNodeGetContent(n);
+
+            if (!xc)
+                return "";
+
+            string ret{(char*)xc};
+
+            xmlFree(xc);
+
+            return ret;
+        }
+
+        n = n->next;
+    }
+
+    return "";
 }
 
 void find_tags(xmlNodePtr n, const string& ns, const string& tag, const function<bool(xmlNodePtr)>& func) {

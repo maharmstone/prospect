@@ -31,7 +31,6 @@ private:
 };
 
 xmlNodePtr find_tag(xmlNodePtr root, const std::string& ns, const std::string& name);
-std::string get_tag_content(xmlNodePtr n);
 void find_tags(xmlNodePtr n, const std::string& ns, const std::string& tag, const std::function<bool(xmlNodePtr)>& func);
 std::string get_prop(xmlNodePtr n, const std::string& name);
 std::string find_tag_content(xmlNodePtr root, const std::string& ns, const std::string& name);

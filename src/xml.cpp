@@ -90,7 +90,7 @@ xmlNodePtr find_tag(xmlNodePtr root, const string& ns, const string& name) {
     throw runtime_error("Could not find " + name + " tag");
 }
 
-string find_tag_content(xmlNodePtr root, const string& ns, const string& name) {
+string find_tag_content(xmlNodePtr root, const string& ns, const string& name) noexcept {
     xmlNodePtr n = root->children;
 
     while (n) {
@@ -125,7 +125,7 @@ void find_tags(xmlNodePtr n, const string& ns, const string& tag, const function
     }
 }
 
-string get_prop(xmlNodePtr n, const string& name) {
+string get_prop(xmlNodePtr n, const string& name) noexcept {
     auto xc = xmlGetProp(n, BAD_CAST name.c_str());
 
     if (!xc)

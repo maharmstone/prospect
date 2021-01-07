@@ -483,6 +483,95 @@ void prospect::find_items(const string& folder, const function<bool(const folder
     xmlFreeDoc(doc);
 }
 
+bool prospect::get_item(const string& id, const function<bool(const folder_item&)>& func) {
+    soap s;
+    xml_writer req;
+    bool found = false;
+
+    req.start_document();
+    req.start_element("m:GetItem");
+
+    req.start_element("m:ItemShape");
+    req.element_text("t:BaseShape", "IdOnly");
+
+    req.start_element("t:AdditionalProperties");
+    field_uri(req, "item:Subject");
+    field_uri(req, "item:DateTimeReceived");
+    field_uri(req, "message:Sender");
+    field_uri(req, "message:IsRead");
+    field_uri(req, "item:HasAttachments");
+    req.end_element();
+    req.end_element();
+
+    req.start_element("m:ItemIds");
+    req.start_element("t:ItemId");
+    req.attribute("Id", id);
+    req.end_element();
+    req.end_element();
+
+    req.end_element();
+
+    req.end_document();
+
+    auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw runtime_error("Could not parse response.");
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "GetItemResponse");
+
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto girm = find_tag(response_messages, messages_ns, "GetItemResponseMessage");
+
+        auto response_class = get_prop(girm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = find_tag_content(girm, messages_ns, "ResponseCode");
+
+            if (response_code == "ErrorItemNotFound") {
+                xmlFreeDoc(doc);
+                return false;
+            }
+
+            throw runtime_error("GetItem failed (" + response_class + ", " + response_code + ").");
+        }
+
+        auto items_tag = find_tag(girm, messages_ns, "Items");
+
+        find_tags(items_tag, types_ns, "Message", [&](xmlNodePtr c) {
+            auto id = get_prop(find_tag(c, types_ns, "ItemId"), "Id");
+            auto subj = find_tag_content(c, types_ns, "Subject");
+            auto received = find_tag_content(c, types_ns, "DateTimeReceived");
+            bool read = find_tag_content(c, types_ns, "IsRead") == "true";
+            bool has_attachments = find_tag_content(c, types_ns, "HasAttachments") == "true";
+
+            auto sender = find_tag(c, types_ns, "Sender");
+            auto sender_mailbox = find_tag(sender, types_ns, "Mailbox");
+
+            auto sender_name = find_tag_content(sender_mailbox, types_ns, "Name");
+            auto sender_email = find_tag_content(sender_mailbox, types_ns, "EmailAddress");
+
+            folder_item item(id, subj, received, read, sender_name, sender_email, has_attachments);
+
+            found = true;
+            func(item);
+
+            return false;
+        });
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
+
+    return found;
+}
+
 vector<attachment> prospect::get_attachments(const string& item_id) {
     soap s;
     xml_writer req;

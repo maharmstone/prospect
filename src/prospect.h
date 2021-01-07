@@ -84,6 +84,7 @@ public:
                     const std::vector<std::string>& cc, const std::vector<std::string>& bcc);
     std::vector<folder> find_folders(const std::string& mailbox = "");
     void find_items(const std::string& folder, const std::function<bool(const folder_item&)>& func);
+    bool get_item(const std::string& id, const std::function<bool(const folder_item&)>& func);
     std::vector<attachment> get_attachments(const std::string& item_id);
     std::string read_attachment(const std::string& id);
     void move_item(const std::string& id, const std::string& folder);

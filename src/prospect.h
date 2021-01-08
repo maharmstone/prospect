@@ -87,7 +87,7 @@ public:
     bool get_item(const std::string& id, const std::function<bool(const folder_item&)>& func);
     std::vector<attachment> get_attachments(const std::string& item_id);
     std::string read_attachment(const std::string& id);
-    void move_item(const std::string& id, const std::string& folder);
+    std::string move_item(const std::string& id, const std::string& folder);
     std::string create_folder(const std::string_view& parent, const std::string_view& name, const std::vector<folder>& folders);
 
 private:

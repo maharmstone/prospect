@@ -709,9 +709,10 @@ string prospect::read_attachment(const string& id) {
     return b64decode(content);
 }
 
-void prospect::move_item(const string& id, const string& folder) {
+string prospect::move_item(const string& id, const string& folder) {
     soap s;
     xml_writer req;
+    string new_id;
 
     req.start_document();
     req.start_element("m:MoveItem");
@@ -744,21 +745,31 @@ void prospect::move_item(const string& id, const string& folder) {
 
         auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
 
-        auto ffrm = find_tag(response_messages, messages_ns, "MoveItemResponseMessage");
+        auto mirm = find_tag(response_messages, messages_ns, "MoveItemResponseMessage");
 
-        auto response_class = get_prop(ffrm, "ResponseClass");
+        auto response_class = get_prop(mirm, "ResponseClass");
 
         if (response_class != "Success") {
-            auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
+            auto response_code = find_tag_content(mirm, messages_ns, "ResponseCode");
 
             throw runtime_error("MoveItem failed (" + response_class + ", " + response_code + ").");
         }
+
+        auto items = find_tag(mirm, messages_ns, "Items");
+
+        auto msg = find_tag(items, types_ns, "Message");
+
+        auto item_id = find_tag(msg, types_ns, "ItemId");
+
+        new_id = get_prop(item_id, "Id");
     } catch (...) {
         xmlFreeDoc(doc);
         throw;
     }
 
     xmlFreeDoc(doc);
+
+    return new_id;
 }
 
 string prospect::create_folder(const string_view& parent, const string_view& name, const vector<folder>& folders) {

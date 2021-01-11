@@ -302,7 +302,9 @@ void prospect::send_email(const string& subject, const string& body, const vecto
     xmlFreeDoc(doc);
 }
 
-void prospect::send_reply(const string& item_id, const string& change_key, const string& body, bool reply_all) {
+void prospect::send_reply(const string& item_id, const string& change_key, bool reply_all, const string& body,
+                          const string& subject, const vector<string>& addressees, const vector<string>& cc,
+                          const vector<string>& bcc) {
     soap s;
     xml_writer req;
 
@@ -329,6 +331,45 @@ void prospect::send_reply(const string& item_id, const string& change_key, const
     req.attribute("BodyType", "HTML");
     req.text(body);
     req.end_element();
+
+    if (!subject.empty())
+        req.element_text("t:Subject", subject);
+
+    if (!addressees.empty()) {
+        req.start_element("t:ToRecipients");
+
+        for (const auto& ad : addressees) {
+            req.start_element("t:Mailbox");
+            req.element_text("t:EmailAddress", ad);
+            req.end_element();
+        }
+
+        req.end_element();
+    }
+
+    if (!cc.empty()) {
+        req.start_element("t:CcRecipients");
+
+        for (const auto& ad : cc) {
+            req.start_element("t:Mailbox");
+            req.element_text("t:EmailAddress", ad);
+            req.end_element();
+        }
+
+        req.end_element();
+    }
+
+    if (!addressees.empty()) {
+        req.start_element("t:BccRecipients");
+
+        for (const auto& ad : bcc) {
+            req.start_element("t:Mailbox");
+            req.element_text("t:EmailAddress", ad);
+            req.end_element();
+        }
+
+        req.end_element();
+    }
 
     req.end_element();
 

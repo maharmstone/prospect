@@ -302,6 +302,70 @@ void prospect::send_email(const string& subject, const string& body, const vecto
     xmlFreeDoc(doc);
 }
 
+void prospect::send_reply(const string& item_id, const string& body, bool reply_all) {
+    soap s;
+    xml_writer req;
+
+    req.start_document();
+    req.start_element("m:CreateItem");
+    req.attribute("MessageDisposition", "SendAndSaveCopy");
+
+    req.start_element("m:SavedItemFolderId");
+    req.start_element("t:DistinguishedFolderId");
+    req.attribute("Id", "sentitems");
+    req.end_element();
+    req.end_element();
+
+    req.start_element("m:Items");
+
+    req.start_element(reply_all ? "t:ReplyAllToItem" : "t:ReplyToItem");
+
+    req.start_element("t:ReferenceItemId");
+    req.attribute("Id", item_id);
+    req.end_element();
+
+    req.start_element("t:NewBodyContent");
+    req.attribute("BodyType", "HTML");
+    req.text(body);
+    req.end_element();
+
+    req.end_element();
+
+    req.end_element();
+
+    req.end_element();
+
+    req.end_document();
+
+    auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw runtime_error("Could not parse response.");
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "CreateItemResponse");
+
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto cirm = find_tag(response_messages, messages_ns, "CreateItemResponseMessage");
+
+        auto response_class = get_prop(cirm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = find_tag_content(cirm, messages_ns, "ResponseCode");
+
+            throw runtime_error("CreateItem failed (" + response_class + ", " + response_code + ").");
+        }
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
+}
+
 static void field_uri(xml_writer& req, const string& uri) {
     req.start_element("t:FieldURI");
     req.attribute("FieldURI", uri);

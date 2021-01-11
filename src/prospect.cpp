@@ -529,6 +529,7 @@ void prospect::find_items(const string& folder, const function<bool(const mail_i
 
         find_tags(items_tag, types_ns, "Message", [&](xmlNodePtr c) {
             auto id = get_prop(find_tag(c, types_ns, "ItemId"), "Id");
+            auto change_key = get_prop(find_tag(c, types_ns, "ItemId"), "ChangeKey");
             auto subj = find_tag_content(c, types_ns, "Subject");
             auto received = find_tag_content(c, types_ns, "DateTimeReceived");
             bool read = find_tag_content(c, types_ns, "IsRead") == "true";
@@ -543,7 +544,8 @@ void prospect::find_items(const string& folder, const function<bool(const mail_i
             auto conversation_id = find_tag_prop(c, types_ns, "ConversationId", "Id");
             auto internet_id = find_tag_content(c, types_ns, "InternetMessageId");
 
-            mail_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id, internet_id);
+            mail_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id,
+                           internet_id, change_key);
 
             return func(item);
         });
@@ -618,6 +620,7 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
 
         find_tags(items_tag, types_ns, "Message", [&](xmlNodePtr c) {
             auto id = get_prop(find_tag(c, types_ns, "ItemId"), "Id");
+            auto change_key = get_prop(find_tag(c, types_ns, "ItemId"), "ChangeKey");
             auto subj = find_tag_content(c, types_ns, "Subject");
             auto received = find_tag_content(c, types_ns, "DateTimeReceived");
             bool read = find_tag_content(c, types_ns, "IsRead") == "true";
@@ -632,7 +635,8 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
             auto conversation_id = find_tag_prop(c, types_ns, "ConversationId", "Id");
             auto internet_id = find_tag_content(c, types_ns, "InternetMessageId");
 
-            mail_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id, internet_id);
+            mail_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id,
+                           internet_id, change_key);
 
             found = true;
             func(item);

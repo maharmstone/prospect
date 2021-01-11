@@ -51,17 +51,18 @@ class PROSPECT mail_item {
 public:
     mail_item(const std::string_view& id, const std::string_view& subject, const std::string_view& received,
               bool read, const std::string_view& sender_name, const std::string_view& sender_email,
-              bool has_attachments, const std::string_view& conversation_id, const std::string_view& internet_id) :
+              bool has_attachments, const std::string_view& conversation_id, const std::string_view& internet_id,
+              const std::string_view& change_key) :
               id(id), subject(subject), received(received), read(read), sender_name(sender_name),
               sender_email(sender_email), has_attachments(has_attachments), conversation_id(conversation_id),
-              internet_id(internet_id) {
+              internet_id(internet_id), change_key(change_key) {
     }
 
     std::string id, subject, received;
     bool read;
     std::string sender_name, sender_email;
     bool has_attachments;
-    std::string conversation_id, internet_id;
+    std::string conversation_id, internet_id, change_key;
 };
 
 class PROSPECT attachment {

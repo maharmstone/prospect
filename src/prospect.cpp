@@ -202,7 +202,7 @@ void prospect::get_domain_settings(const string& url, const string& domain, map<
 }
 
 void prospect::send_email(const string& subject, const string& body, const vector<string>& addressees,
-                          const vector<string>& cc, const vector<string>& bcc) {
+                          const vector<string>& cc, const vector<string>& bcc, const string& reply_to) {
     soap s;
     xml_writer req;
 
@@ -261,6 +261,9 @@ void prospect::send_email(const string& subject, const string& body, const vecto
 
         req.end_element();
     }
+
+    if (!reply_to.empty())
+        req.element_text("t:InReplyTo", reply_to);
 
     req.end_element();
 

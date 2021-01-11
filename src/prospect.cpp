@@ -302,7 +302,7 @@ void prospect::send_email(const string& subject, const string& body, const vecto
     xmlFreeDoc(doc);
 }
 
-void prospect::send_reply(const string& item_id, const string& body, bool reply_all) {
+void prospect::send_reply(const string& item_id, const string& change_key, const string& body, bool reply_all) {
     soap s;
     xml_writer req;
 
@@ -322,6 +322,7 @@ void prospect::send_reply(const string& item_id, const string& body, bool reply_
 
     req.start_element("t:ReferenceItemId");
     req.attribute("Id", item_id);
+    req.attribute("ChangeKey", change_key);
     req.end_element();
 
     req.start_element("t:NewBodyContent");

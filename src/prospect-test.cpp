@@ -41,7 +41,7 @@ static void main2() {
     const auto& dir = find_folder(inbox.id, "Juno", folders);
     const auto& processed_dir_id = p.create_folder(dir.id, "processed", folders);
 
-    p.find_items(dir.id, [&](const prospect::folder_item& item) {
+    p.find_items(dir.id, [&](const prospect::mail_item& item) {
         fmt::print("Message {}, subject {}, received {}, read {}, has attachments {}, sender {} <{}>\n", item.id, item.subject,
                    item.received, item.read, item.has_attachments, item.sender_name, item.sender_email);
 

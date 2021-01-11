@@ -47,13 +47,13 @@ public:
     unsigned int total_count, child_folder_count, unread_count;
 };
 
-class PROSPECT folder_item {
+class PROSPECT mail_item {
 public:
-    folder_item(const std::string_view& id, const std::string_view& subject, const std::string_view& received,
-                bool read, const std::string_view& sender_name, const std::string_view& sender_email,
-                bool has_attachments, const std::string_view& conversation_id) :
-                id(id), subject(subject), received(received), read(read), sender_name(sender_name),
-                sender_email(sender_email), has_attachments(has_attachments), conversation_id(conversation_id) {
+    mail_item(const std::string_view& id, const std::string_view& subject, const std::string_view& received,
+              bool read, const std::string_view& sender_name, const std::string_view& sender_email,
+              bool has_attachments, const std::string_view& conversation_id) :
+              id(id), subject(subject), received(received), read(read), sender_name(sender_name),
+              sender_email(sender_email), has_attachments(has_attachments), conversation_id(conversation_id) {
     }
 
     std::string id, subject, received;
@@ -84,8 +84,8 @@ public:
     void send_email(const std::string& subject, const std::string& body, const std::vector<std::string>& addressee,
                     const std::vector<std::string>& cc, const std::vector<std::string>& bcc);
     std::vector<folder> find_folders(const std::string& mailbox = "");
-    void find_items(const std::string& folder, const std::function<bool(const folder_item&)>& func);
-    bool get_item(const std::string& id, const std::function<bool(const folder_item&)>& func);
+    void find_items(const std::string& folder, const std::function<bool(const mail_item&)>& func);
+    bool get_item(const std::string& id, const std::function<bool(const mail_item&)>& func);
     std::vector<attachment> get_attachments(const std::string& item_id);
     std::string read_attachment(const std::string& id);
     std::string move_item(const std::string& id, const std::string& folder);

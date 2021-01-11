@@ -393,7 +393,7 @@ vector<folder> prospect::find_folders(const string& mailbox) {
     return folders;
 }
 
-void prospect::find_items(const string& folder, const function<bool(const folder_item&)>& func) {
+void prospect::find_items(const string& folder, const function<bool(const mail_item&)>& func) {
     soap s;
     xml_writer req;
 
@@ -474,7 +474,7 @@ void prospect::find_items(const string& folder, const function<bool(const folder
 
             auto conversation_id = find_tag_prop(c, types_ns, "ConversationId", "Id");
 
-            folder_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id);
+            mail_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id);
 
             return func(item);
         });
@@ -486,7 +486,7 @@ void prospect::find_items(const string& folder, const function<bool(const folder
     xmlFreeDoc(doc);
 }
 
-bool prospect::get_item(const string& id, const function<bool(const folder_item&)>& func) {
+bool prospect::get_item(const string& id, const function<bool(const mail_item&)>& func) {
     soap s;
     xml_writer req;
     bool found = false;
@@ -561,7 +561,7 @@ bool prospect::get_item(const string& id, const function<bool(const folder_item&
 
             auto conversation_id = find_tag_prop(c, types_ns, "ConversationId", "Id");
 
-            folder_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id);
+            mail_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id);
 
             found = true;
             func(item);

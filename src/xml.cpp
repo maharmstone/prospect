@@ -113,6 +113,29 @@ string find_tag_content(xmlNodePtr root, const string& ns, const string& name) n
     return "";
 }
 
+string find_tag_prop(xmlNodePtr root, const string& ns, const string& tag_name, const string& prop_name) noexcept {
+    xmlNodePtr n = root->children;
+
+    while (n) {
+        if (n->type == XML_ELEMENT_NODE && n->ns && !strcmp((char*)n->ns->href, ns.c_str()) && !strcmp((char*)n->name, tag_name.c_str())) {
+            auto xc = xmlGetProp(n, BAD_CAST prop_name.c_str());
+
+            if (!xc)
+                return "";
+
+            string ret{(char*)xc};
+
+            xmlFree(xc);
+
+            return ret;
+        }
+
+        n = n->next;
+    }
+
+    return "";
+}
+
 void find_tags(xmlNodePtr n, const string& ns, const string& tag, const function<bool(xmlNodePtr)>& func) {
     auto c = n->children;
 

@@ -51,15 +51,16 @@ class PROSPECT folder_item {
 public:
     folder_item(const std::string_view& id, const std::string_view& subject, const std::string_view& received,
                 bool read, const std::string_view& sender_name, const std::string_view& sender_email,
-                bool has_attachments) :
+                bool has_attachments, const std::string_view& conversation_id) :
                 id(id), subject(subject), received(received), read(read), sender_name(sender_name),
-                sender_email(sender_email), has_attachments(has_attachments) {
+                sender_email(sender_email), has_attachments(has_attachments), conversation_id(conversation_id) {
     }
 
     std::string id, subject, received;
     bool read;
     std::string sender_name, sender_email;
     bool has_attachments;
+    std::string conversation_id;
 };
 
 class PROSPECT attachment {

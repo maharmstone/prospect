@@ -410,6 +410,7 @@ void prospect::find_items(const string& folder, const function<bool(const folder
     field_uri(req, "message:Sender");
     field_uri(req, "message:IsRead");
     field_uri(req, "item:HasAttachments");
+    field_uri(req, "item:ConversationId");
     req.end_element();
     req.end_element();
 
@@ -471,7 +472,9 @@ void prospect::find_items(const string& folder, const function<bool(const folder
             auto sender_name = find_tag_content(sender_mailbox, types_ns, "Name");
             auto sender_email = find_tag_content(sender_mailbox, types_ns, "EmailAddress");
 
-            folder_item item(id, subj, received, read, sender_name, sender_email, has_attachments);
+            auto conversation_id = find_tag_prop(c, types_ns, "ConversationId", "Id");
+
+            folder_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id);
 
             return func(item);
         });
@@ -500,6 +503,7 @@ bool prospect::get_item(const string& id, const function<bool(const folder_item&
     field_uri(req, "message:Sender");
     field_uri(req, "message:IsRead");
     field_uri(req, "item:HasAttachments");
+    field_uri(req, "item:ConversationId");
     req.end_element();
     req.end_element();
 
@@ -555,7 +559,9 @@ bool prospect::get_item(const string& id, const function<bool(const folder_item&
             auto sender_name = find_tag_content(sender_mailbox, types_ns, "Name");
             auto sender_email = find_tag_content(sender_mailbox, types_ns, "EmailAddress");
 
-            folder_item item(id, subj, received, read, sender_name, sender_email, has_attachments);
+            auto conversation_id = find_tag_prop(c, types_ns, "ConversationId", "Id");
+
+            folder_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id);
 
             found = true;
             func(item);

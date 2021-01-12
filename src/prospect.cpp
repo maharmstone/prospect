@@ -298,9 +298,7 @@ void mail_item::send_email() const {
     xmlFreeDoc(doc);
 }
 
-void prospect::send_reply(const string& item_id, const string& change_key, bool reply_all, const string& body,
-                          const string& subject, const vector<string>& addressees, const vector<string>& cc,
-                          const vector<string>& bcc) {
+void mail_item::send_reply(const string& item_id, const string& change_key, bool reply_all) const {
     soap s;
     xml_writer req;
 
@@ -331,10 +329,10 @@ void prospect::send_reply(const string& item_id, const string& change_key, bool 
     if (!subject.empty())
         req.element_text("t:Subject", subject);
 
-    if (!addressees.empty()) {
+    if (!recipients.empty()) {
         req.start_element("t:ToRecipients");
 
-        for (const auto& ad : addressees) {
+        for (const auto& ad : recipients) {
             req.start_element("t:Mailbox");
             req.element_text("t:EmailAddress", ad);
             req.end_element();
@@ -355,7 +353,7 @@ void prospect::send_reply(const string& item_id, const string& change_key, bool 
         req.end_element();
     }
 
-    if (!addressees.empty()) {
+    if (!bcc.empty()) {
         req.start_element("t:BccRecipients");
 
         for (const auto& ad : bcc) {
@@ -375,7 +373,7 @@ void prospect::send_reply(const string& item_id, const string& change_key, bool 
 
     req.end_document();
 
-    auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+    auto ret = s.get(p.url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 

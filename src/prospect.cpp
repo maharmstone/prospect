@@ -586,8 +586,18 @@ void prospect::find_items(const string& folder, const function<bool(const mail_i
             auto conversation_id = find_tag_prop(c, types_ns, "ConversationId", "Id");
             auto internet_id = find_tag_content(c, types_ns, "InternetMessageId");
 
-            mail_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id,
-                           internet_id, change_key);
+            mail_item item(*this);
+
+            item.id = id;
+            item.subject = subj;
+            item.received = received;
+            item.read = read;
+            item.sender_name = sender_name;
+            item.sender_email = sender_email;
+            item.has_attachments = has_attachments;
+            item.conversation_id = conversation_id;
+            item.internet_id = internet_id;
+            item.change_key = change_key;
 
             return func(item);
         });
@@ -677,8 +687,18 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
             auto conversation_id = find_tag_prop(c, types_ns, "ConversationId", "Id");
             auto internet_id = find_tag_content(c, types_ns, "InternetMessageId");
 
-            mail_item item(id, subj, received, read, sender_name, sender_email, has_attachments, conversation_id,
-                           internet_id, change_key);
+            mail_item item(*this);
+
+            item.id = id;
+            item.subject = subj;
+            item.received = received;
+            item.read = read;
+            item.sender_name = sender_name;
+            item.sender_email = sender_email;
+            item.has_attachments = has_attachments;
+            item.conversation_id = conversation_id;
+            item.internet_id = internet_id;
+            item.change_key = change_key;
 
             found = true;
             func(item);

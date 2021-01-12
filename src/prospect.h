@@ -53,6 +53,8 @@ class PROSPECT mail_item {
 public:
     mail_item(prospect& p) : p(p) { }
 
+    void send_email() const;
+
     prospect& p;
     std::string id, subject, received;
     bool read;
@@ -80,8 +82,6 @@ public:
 
     void get_domain_settings(const std::string& url, const std::string& domain, std::map<std::string, std::string>& settings);
     void get_user_settings(const std::string& url, const std::string& mailbox, std::map<std::string, std::string>& settings);
-    void send_email(const std::string& subject, const std::string& body, const std::vector<std::string>& addressee,
-                    const std::vector<std::string>& cc, const std::vector<std::string>& bcc, const std::string& conversation_id);
     void send_reply(const std::string& item_id, const std::string& change_key, bool reply_all, const std::string& body,
                     const std::string& subject = "", const std::vector<std::string>& addressees = {},
                     const std::vector<std::string>& cc = {}, const std::vector<std::string>& bcc = {});

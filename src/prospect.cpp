@@ -201,8 +201,7 @@ void prospect::get_domain_settings(const string& url, const string& domain, map<
     xmlFreeDoc(doc);
 }
 
-void prospect::send_email(const string& subject, const string& body, const vector<string>& addressees,
-                          const vector<string>& cc, const vector<string>& bcc, const string& reply_to) {
+void mail_item::send_email() const {
     soap s;
     xml_writer req;
 
@@ -226,10 +225,10 @@ void prospect::send_email(const string& subject, const string& body, const vecto
     req.text(body);
     req.end_element();
 
-    if (!addressees.empty()) {
+    if (!recipients.empty()) {
         req.start_element("t:ToRecipients");
 
-        for (const auto& ad : addressees) {
+        for (const auto& ad : recipients) {
             req.start_element("t:Mailbox");
             req.element_text("t:EmailAddress", ad);
             req.end_element();
@@ -250,7 +249,7 @@ void prospect::send_email(const string& subject, const string& body, const vecto
         req.end_element();
     }
 
-    if (!addressees.empty()) {
+    if (!bcc.empty()) {
         req.start_element("t:BccRecipients");
 
         for (const auto& ad : bcc) {
@@ -262,9 +261,6 @@ void prospect::send_email(const string& subject, const string& body, const vecto
         req.end_element();
     }
 
-    if (!reply_to.empty())
-        req.element_text("t:InReplyTo", reply_to);
-
     req.end_element();
 
     req.end_element();
@@ -273,7 +269,7 @@ void prospect::send_email(const string& subject, const string& body, const vecto
 
     req.end_document();
 
-    auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+    auto ret = s.get(p.url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 

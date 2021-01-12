@@ -524,6 +524,8 @@ void prospect::find_items(const string& folder, const function<bool(const mail_i
     req.end_element();
     req.end_element();
 
+    // Exchange ignores message:ToRecipients, message:CcRecipients, and message:BccRecipients in FindItem
+
     req.start_element("m:SortOrder");
     req.start_element("t:FieldOrder");
     req.attribute("Order", "Ascending");
@@ -628,6 +630,9 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
     field_uri(req, "item:HasAttachments");
     field_uri(req, "item:ConversationId");
     field_uri(req, "message:InternetMessageId");
+    field_uri(req, "message:ToRecipients");
+    field_uri(req, "message:CcRecipients");
+    field_uri(req, "message:BccRecipients");
     req.end_element();
     req.end_element();
 
@@ -699,6 +704,45 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
             item.conversation_id = conversation_id;
             item.internet_id = internet_id;
             item.change_key = change_key;
+
+            find_tags(c, types_ns, "ToRecipients", [&](xmlNodePtr c) {
+                find_tags(c, types_ns, "Mailbox", [&](xmlNodePtr c) {
+                    auto addr = find_tag_content(c, types_ns, "EmailAddress");
+
+                    if (!addr.empty())
+                        item.recipients.push_back(addr);
+
+                    return true;
+                });
+
+                return false;
+            });
+
+            find_tags(c, types_ns, "CcRecipients", [&](xmlNodePtr c) {
+                find_tags(c, types_ns, "Mailbox", [&](xmlNodePtr c) {
+                    auto addr = find_tag_content(c, types_ns, "EmailAddress");
+
+                    if (!addr.empty())
+                        item.cc.push_back(addr);
+
+                    return true;
+                });
+
+                return false;
+            });
+
+            find_tags(c, types_ns, "BccRecipients", [&](xmlNodePtr c) {
+                find_tags(c, types_ns, "Mailbox", [&](xmlNodePtr c) {
+                    auto addr = find_tag_content(c, types_ns, "EmailAddress");
+
+                    if (!addr.empty())
+                        item.bcc.push_back(addr);
+
+                    return true;
+                });
+
+                return false;
+            });
 
             found = true;
             func(item);

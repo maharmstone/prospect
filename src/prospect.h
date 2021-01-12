@@ -59,6 +59,7 @@ public:
     std::string sender_name, sender_email;
     bool has_attachments;
     std::string conversation_id, internet_id, change_key;
+    std::vector<std::string> recipients, cc, bcc;
 };
 
 class PROSPECT attachment {

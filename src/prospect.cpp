@@ -633,6 +633,7 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
     field_uri(req, "message:ToRecipients");
     field_uri(req, "message:CcRecipients");
     field_uri(req, "message:BccRecipients");
+    field_uri(req, "item:Body");
     req.end_element();
     req.end_element();
 
@@ -743,6 +744,8 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
 
                 return false;
             });
+
+            item.body = find_tag_content(c, types_ns, "Body");
 
             found = true;
             func(item);

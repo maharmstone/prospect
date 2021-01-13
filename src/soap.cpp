@@ -15,6 +15,8 @@ static const unordered_map<string, string> namespaces = {
     { "t", "http://schemas.microsoft.com/exchange/services/2006/types" }
 };
 
+static string extract_response(const string_view& ret);
+
 static size_t curl_read_cb(void* dest, size_t size, size_t nmemb, void* userdata) {
     auto& s = *(soap*)userdata;
 
@@ -161,6 +163,90 @@ string soap::get(const string& url, const string& action, const string& header, 
     return extract_response(ret);
 }
 
+static size_t curl_write_stream_cb(char* ptr, size_t size, size_t nmemb, void* userdata) {
+    auto& func = *(soap_stream_func*)userdata;
+
+    auto sv = string_view(ptr, size * nmemb);
+
+    while (!sv.empty() && sv[0] != '<') {
+        sv.remove_prefix(1);
+    }
+
+    while (!sv.empty() && sv.back() != '>') {
+        sv.remove_suffix(1);
+    }
+
+    if (!sv.empty())
+        func(extract_response(sv));
+
+    return size * nmemb;
+}
+
+void soap::get_stream(const string& url, const string& action, const string& header, const string& body,
+                      const soap_stream_func& func) {
+    string soap_action = "SOAPAction: " + action;
+
+    CURLcode res;
+    CURL* curl = curl_easy_init();
+
+    if (!curl)
+        throw formatted_error(FMT_STRING("Failed to initialize cURL."));
+
+    payload = create_xml(header, body);
+
+    try {
+        struct curl_slist *chunk = NULL;
+        long error_code;
+
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+
+        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_NEGOTIATE);
+        curl_easy_setopt(curl, CURLOPT_USERPWD, ":");
+
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
+
+        curl_easy_setopt(curl, CURLOPT_POST, 1L);
+        curl_easy_setopt(curl, CURLOPT_READFUNCTION, curl_read_cb);
+        curl_easy_setopt(curl, CURLOPT_READDATA, this);
+
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_stream_cb);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, func);
+
+        curl_easy_setopt(curl, CURLOPT_SEEKFUNCTION, curl_seek_cb);
+        curl_easy_setopt(curl, CURLOPT_SEEKDATA, this);
+
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, payload.length());
+
+        chunk = curl_slist_append(chunk, "Content-Type: text/xml;charset=UTF-8");
+        res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+        if (res != CURLE_OK)
+            throw formatted_error(FMT_STRING("curl_easy_setopt failed: {}"), curl_easy_strerror(res));
+
+        if (!action.empty()) {
+            chunk = curl_slist_append(chunk, soap_action.c_str());
+            res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
+            if (res != CURLE_OK)
+                throw formatted_error(FMT_STRING("curl_easy_setopt failed: {}"), curl_easy_strerror(res));
+        }
+
+        res = curl_easy_perform(curl);
+
+        if (res != CURLE_OK)
+            throw formatted_error(FMT_STRING("curl_easy_perform failed: {}"), curl_easy_strerror(res));
+
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &error_code);
+
+        if (error_code >= 400)
+            throw formatted_error(FMT_STRING("HTTP error {}"), error_code);
+    } catch (...) {
+        curl_easy_cleanup(curl);
+        throw;
+    }
+
+    curl_easy_cleanup(curl);
+}
+
 void soap::write(char* ptr, size_t size) {
     ret += string(ptr, size);
 }
@@ -176,7 +262,7 @@ size_t soap::read(void* ptr, size_t size) {
     return size;
 }
 
-string soap::extract_response(const string_view& ret) {
+static string extract_response(const string_view& ret) {
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)

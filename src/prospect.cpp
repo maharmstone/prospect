@@ -44,7 +44,7 @@ prospect::prospect(const string_view& domain) {
     get_domain_settings("https://autodiscover." + dom + "/autodiscover/autodiscover.svc", dom, settings);
 
     if (settings.at("ExternalEwsUrl").empty())
-        throw runtime_error("Could not find value for ExternalEwsUrl.");
+        throw formatted_error(FMT_STRING("Could not find value for ExternalEwsUrl."));
 
     url = settings.at("ExternalEwsUrl");
 }
@@ -61,7 +61,7 @@ static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& 
     if (error_code != "NoError") {
         auto error_msg = find_tag_content(response, autodiscover_ns, "ErrorMessage");
 
-        throw runtime_error("GetUserSettings failed (" + error_code + ", " + error_msg + ").");
+        throw formatted_error(FMT_STRING("GetUserSettings failed ({}, {})."), error_code, error_msg);
     }
 
     auto user_responses = find_tag(response, autodiscover_ns, "UserResponses");
@@ -116,7 +116,7 @@ void prospect::get_user_settings(const string& url, const string& mailbox, map<s
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw runtime_error("Could not parse response.");
+        throw formatted_error(FMT_STRING("Could not parse response."));
 
     try {
         parse_get_user_settings_response(find_tag(xmlDocGetRootElement(doc), autodiscover_ns, "GetUserSettingsResponseMessage"), settings);
@@ -136,7 +136,7 @@ static void parse_get_domain_settings_response(xmlNodePtr n, map<string, string>
     if (error_code != "NoError") {
         auto error_msg = find_tag_content(response, autodiscover_ns, "ErrorMessage");
 
-        throw runtime_error("GetDomainSettings failed (" + error_code + ", " + error_msg + ").");
+        throw formatted_error(FMT_STRING("GetDomainSettings failed ({}, {})."), error_code, error_msg);
     }
 
     auto user_responses = find_tag(response, autodiscover_ns, "DomainResponses");
@@ -189,7 +189,7 @@ void prospect::get_domain_settings(const string& url, const string& domain, map<
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw runtime_error("Could not parse response.");
+        throw formatted_error(FMT_STRING("Could not parse response."));
 
     try {
         parse_get_domain_settings_response(find_tag(xmlDocGetRootElement(doc), autodiscover_ns, "GetDomainSettingsResponseMessage"), settings);
@@ -279,7 +279,7 @@ void mail_item::send_email() const {
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw runtime_error("Could not parse response.");
+        throw formatted_error(FMT_STRING("Could not parse response."));
 
     try {
         auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "CreateItemResponse");
@@ -293,7 +293,7 @@ void mail_item::send_email() const {
         if (response_class != "Success") {
             auto response_code = find_tag_content(cirm, messages_ns, "ResponseCode");
 
-            throw runtime_error("CreateItem failed (" + response_class + ", " + response_code + ").");
+            throw formatted_error(FMT_STRING("CreateItem failed ({}, {})."), response_class, response_code);
         }
     } catch (...) {
         xmlFreeDoc(doc);
@@ -388,7 +388,7 @@ void mail_item::send_reply(const string& item_id, const string& change_key, bool
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw runtime_error("Could not parse response.");
+        throw formatted_error(FMT_STRING("Could not parse response."));
 
     try {
         auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "CreateItemResponse");
@@ -402,7 +402,7 @@ void mail_item::send_reply(const string& item_id, const string& change_key, bool
         if (response_class != "Success") {
             auto response_code = find_tag_content(cirm, messages_ns, "ResponseCode");
 
-            throw runtime_error("CreateItem failed (" + response_class + ", " + response_code + ").");
+            throw formatted_error(FMT_STRING("CreateItem failed ({}, {})."), response_class, response_code);
         }
     } catch (...) {
         xmlFreeDoc(doc);
@@ -458,7 +458,7 @@ vector<folder> prospect::find_folders(const string& mailbox) {
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw runtime_error("Could not parse response.");
+        throw formatted_error(FMT_STRING("Could not parse response."));
 
     vector<folder> folders;
 
@@ -474,7 +474,7 @@ vector<folder> prospect::find_folders(const string& mailbox) {
         if (response_class != "Success") {
             auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
 
-            throw runtime_error("FindFolder failed (" + response_class + ", " + response_code + ").");
+            throw formatted_error(FMT_STRING("FindFolder failed ({}, {})."), response_class, response_code);
         }
 
         auto root_folder = find_tag(ffrm, messages_ns, "RootFolder");
@@ -566,7 +566,7 @@ void prospect::find_items(const string& folder, const function<bool(const mail_i
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw runtime_error("Could not parse response.");
+        throw formatted_error(FMT_STRING("Could not parse response."));
 
     try {
         auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "FindItemResponse");
@@ -580,7 +580,7 @@ void prospect::find_items(const string& folder, const function<bool(const mail_i
         if (response_class != "Success") {
             auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
 
-            throw runtime_error("FindItem failed (" + response_class + ", " + response_code + ").");
+            throw formatted_error(FMT_STRING("FindItem failed ({}, {})."), response_class, response_code);
         }
 
         auto root_folder = find_tag(ffrm, messages_ns, "RootFolder");
@@ -670,7 +670,7 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw runtime_error("Could not parse response.");
+        throw formatted_error(FMT_STRING("Could not parse response."));
 
     try {
         auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "GetItemResponse");
@@ -689,7 +689,7 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
                 return false;
             }
 
-            throw runtime_error("GetItem failed (" + response_class + ", " + response_code + ").");
+            throw formatted_error(FMT_STRING("GetItem failed ({}, {})."), response_class, response_code);
         }
 
         auto items_tag = find_tag(girm, messages_ns, "Items");
@@ -810,7 +810,7 @@ vector<attachment> prospect::get_attachments(const string& item_id) {
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw runtime_error("Could not parse response.");
+        throw formatted_error(FMT_STRING("Could not parse response."));
 
     vector<attachment> v;
 
@@ -826,7 +826,7 @@ vector<attachment> prospect::get_attachments(const string& item_id) {
         if (response_class != "Success") {
             auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
 
-            throw runtime_error("GetItem failed (" + response_class + ", " + response_code + ").");
+            throw formatted_error(FMT_STRING("GetItem failed ({}, {})."), response_class, response_code);
         }
 
         auto items_tag = find_tag(ffrm, messages_ns, "Items");
@@ -884,7 +884,7 @@ string prospect::read_attachment(const string& id) {
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw runtime_error("Could not parse response.");
+        throw formatted_error(FMT_STRING("Could not parse response."));
 
     string content;
 
@@ -900,7 +900,7 @@ string prospect::read_attachment(const string& id) {
         if (response_class != "Success") {
             auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
 
-            throw runtime_error("GetAttachment failed (" + response_class + ", " + response_code + ").");
+            throw formatted_error(FMT_STRING("GetAttachment failed ({}, {})."), response_class, response_code);
         }
 
         auto attachments = find_tag(ffrm, messages_ns, "Attachments");
@@ -947,7 +947,7 @@ string prospect::move_item(const string& id, const string& folder) {
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw runtime_error("Could not parse response.");
+        throw formatted_error(FMT_STRING("Could not parse response."));
 
     try {
         auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "MoveItemResponse");
@@ -961,7 +961,7 @@ string prospect::move_item(const string& id, const string& folder) {
         if (response_class != "Success") {
             auto response_code = find_tag_content(mirm, messages_ns, "ResponseCode");
 
-            throw runtime_error("MoveItem failed (" + response_class + ", " + response_code + ").");
+            throw formatted_error(FMT_STRING("MoveItem failed ({}, {})."), response_class, response_code);
         }
 
         auto items = find_tag(mirm, messages_ns, "Items");
@@ -1015,7 +1015,7 @@ string prospect::create_folder(const string_view& parent, const string_view& nam
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw runtime_error("Could not parse response.");
+        throw formatted_error(FMT_STRING("Could not parse response."));
 
     string id;
 
@@ -1031,7 +1031,7 @@ string prospect::create_folder(const string_view& parent, const string_view& nam
         if (response_class != "Success") {
             auto response_code = find_tag_content(ffrm, messages_ns, "ResponseCode");
 
-            throw runtime_error("CreateFolder failed (" + response_class + ", " + response_code + ").");
+            throw formatted_error(FMT_STRING("CreateFolder failed ({}, {})."), response_class, response_code);
         }
 
         auto folders = find_tag(ffrm, messages_ns, "Folders");

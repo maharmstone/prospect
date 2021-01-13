@@ -1,4 +1,5 @@
 #include "xml.h"
+#include "misc.h"
 #include <stdexcept>
 #include <string.h>
 
@@ -9,12 +10,12 @@ xml_writer::xml_writer() {
 
     buf = xmlBufferCreate();
     if (!buf)
-        throw runtime_error("xmlBufferCreate failed");
+        throw formatted_error(FMT_STRING("xmlBufferCreate failed"));
 
     writer = xmlNewTextWriterMemory(buf, 0);
     if (!writer) {
         xmlBufferFree(buf);
-        throw runtime_error("xmlNewTextWriterMemory failed");
+        throw formatted_error(FMT_STRING("xmlNewTextWriterMemory failed"));
     }
 }
 
@@ -30,51 +31,51 @@ string xml_writer::dump() const {
 void xml_writer::start_document() {
     int rc = xmlTextWriterStartDocument(writer, nullptr, "UTF-8", nullptr);
     if (rc < 0)
-        throw runtime_error("xmlTextWriterStartDocument failed (error " + to_string(rc) + ")");
+        throw formatted_error(FMT_STRING("xmlTextWriterStartDocument failed (error {})"), rc);
 }
 
 void xml_writer::end_document() {
     int rc = xmlTextWriterEndDocument(writer);
     if (rc < 0)
-        throw runtime_error("xmlTextWriterEndDocument failed (error " + to_string(rc) + ")");
+        throw formatted_error(FMT_STRING("xmlTextWriterEndDocument failed (error {})"), rc);
 }
 
 void xml_writer::start_element(const string& tag, const unordered_map<string, string>& namespaces) {
     int rc = xmlTextWriterStartElement(writer, BAD_CAST tag.c_str());
     if (rc < 0)
-        throw runtime_error("xmlTextWriterStartElement failed (error " + to_string(rc) + ")");
+        throw formatted_error(FMT_STRING("xmlTextWriterStartElement failed (error {})"), rc);
 
     for (const auto& ns : namespaces) {
         string att = ns.first.empty() ? "xmlns" : ("xmlns:" + ns.first);
 
         rc = xmlTextWriterWriteAttribute(writer, BAD_CAST att.c_str(), BAD_CAST ns.second.c_str());
         if (rc < 0)
-            throw runtime_error("xmlTextWriterWriteAttribute failed (error " + to_string(rc) + ")");
+            throw formatted_error(FMT_STRING("xmlTextWriterWriteAttribute failed (error {})"), rc);
     }
 }
 
 void xml_writer::end_element() {
     int rc = xmlTextWriterEndElement(writer);
     if (rc < 0)
-        throw runtime_error("xmlTextWriterEndElement failed (error " + to_string(rc) + ")");
+        throw formatted_error(FMT_STRING("xmlTextWriterEndElement failed (error {})"), rc);
 }
 
 void xml_writer::text(const string& s) {
     int rc = xmlTextWriterWriteString(writer, BAD_CAST s.c_str());
     if (rc < 0)
-        throw runtime_error("xmlTextWriterWriteString failed (error " + to_string(rc) + ")");
+        throw formatted_error(FMT_STRING("xmlTextWriterWriteString failed (error {})"), rc);
 }
 
 void xml_writer::attribute(const string& name, const string& value) {
     int rc = xmlTextWriterWriteAttribute(writer, BAD_CAST name.c_str(), BAD_CAST value.c_str());
     if (rc < 0)
-        throw runtime_error("xmlTextWriterWriteAttribute failed (error " + to_string(rc) + ")");
+        throw formatted_error(FMT_STRING("xmlTextWriterWriteAttribute failed (error {})"), rc);
 }
 
 void xml_writer::raw(const std::string_view& s) {
     int rc = xmlTextWriterWriteRawLen(writer, BAD_CAST s.data(), (int)s.length());
     if (rc < 0)
-        throw runtime_error("xmlTextWriterWriteRawLen failed (error " + to_string(rc) + ")");
+        throw formatted_error(FMT_STRING("xmlTextWriterWriteRawLen failed (error {})"), rc);
 }
 
 xmlNodePtr find_tag(xmlNodePtr root, const string& ns, const string& name) {
@@ -87,7 +88,7 @@ xmlNodePtr find_tag(xmlNodePtr root, const string& ns, const string& name) {
         n = n->next;
     }
 
-    throw runtime_error("Could not find " + name + " tag");
+    throw formatted_error(FMT_STRING("Could not find {} tag"), name);
 }
 
 string find_tag_content(xmlNodePtr root, const string& ns, const string& name) noexcept {

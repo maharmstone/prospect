@@ -83,6 +83,8 @@ public:
     std::string modified;
 };
 
+class subscription;
+
 class PROSPECT prospect {
 public:
     prospect(const std::string_view& domain = "");
@@ -99,9 +101,33 @@ public:
     std::string create_folder(const std::string_view& parent, const std::string_view& name, const std::vector<folder>& folders);
 
     friend class mail_item;
+    friend class subscription;
 
 private:
     std::string url;
+};
+
+enum class event {
+    new_mail,
+    created,
+    deleted,
+    modified,
+    moved,
+    copied,
+    free_busy_changed
+};
+
+class PROSPECT subscription {
+public:
+    subscription(prospect& p, const std::string_view& parent, const std::vector<enum event>& events);
+    ~subscription();
+
+    void wait(unsigned int timeout, const std::function<void(const std::string_view&, const std::string_view&, const std::string_view&, const std::string_view&, const std::string_view&)>& func);
+
+    prospect& p;
+
+private:
+    std::string id;
 };
 
 };

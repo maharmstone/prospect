@@ -1049,4 +1049,105 @@ string prospect::create_folder(const string_view& parent, const string_view& nam
     return id;
 }
 
+subscription::subscription(prospect& p, const string_view& parent, const vector<enum event>& events) : p(p) {
+    soap s;
+    xml_writer req;
+
+    req.start_document();
+    req.start_element("m:Subscribe");
+
+    req.start_element("m:StreamingSubscriptionRequest");
+
+    req.start_element("t:FolderIds");
+    req.start_element("t:FolderId");
+    req.attribute("Id", string(parent));
+    req.end_element();
+    req.end_element();
+
+    req.start_element("t:EventTypes");
+
+    for (auto ev : events) {
+        switch (ev) {
+            case event::new_mail:
+                req.element_text("t:EventType", "NewMailEvent");
+                break;
+
+            case event::created:
+                req.element_text("t:EventType", "CreatedEvent");
+                break;
+
+            case event::deleted:
+                req.element_text("t:EventType", "DeletedEvent");
+                break;
+
+            case event::modified:
+                req.element_text("t:EventType", "ModifiedEvent");
+                break;
+
+            case event::moved:
+                req.element_text("t:EventType", "MovedEvent");
+                break;
+
+            case event::copied:
+                req.element_text("t:EventType", "CopiedEvent");
+                break;
+
+            case event::free_busy_changed:
+                req.element_text("t:EventType", "FreeBusyChangedEvent");
+                break;
+
+            default:
+                throw formatted_error(FMT_STRING("Unrecognized event type {}."), ev);
+        }
+    }
+
+    req.end_element();
+
+    req.end_element();
+
+    req.end_element();
+
+    req.end_document();
+
+    auto ret = s.get(p.url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw formatted_error(FMT_STRING("Could not parse response."));
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "SubscribeResponse");
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto srm = find_tag(response_messages, messages_ns, "SubscribeResponseMessage");
+
+        auto response_class = get_prop(srm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = find_tag_content(srm, messages_ns, "ResponseCode");
+
+            throw formatted_error(FMT_STRING("Subscribe failed ({}, {})."), response_class, response_code);
+        }
+
+        id = find_tag_content(srm, messages_ns, "SubscriptionId");
+
+        if (id.empty())
+            throw formatted_error(FMT_STRING("No SubscriptionId returned."));
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
+}
+
+subscription::~subscription() {
+    // FIXME - call Unsubscribe
+}
+
+void subscription::wait(unsigned int timeout, const function<void(const string_view&, const string_view&, const string_view&, const string_view&, const string_view&)>& func) {
+    // FIXME
+}
+
 }

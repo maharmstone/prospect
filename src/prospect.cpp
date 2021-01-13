@@ -261,6 +261,11 @@ void mail_item::send_email() const {
         req.end_element();
     }
 
+    if (importance == importance::low)
+        req.element_text("t:Importance", "Low");
+    else if (importance == importance::high)
+        req.element_text("t:Importance", "High");
+
     req.end_element();
 
     req.end_element();
@@ -364,6 +369,11 @@ void mail_item::send_reply(const string& item_id, const string& change_key, bool
 
         req.end_element();
     }
+
+    if (importance == importance::low)
+        req.element_text("t:Importance", "Low");
+    else if (importance == importance::high)
+        req.element_text("t:Importance", "High");
 
     req.end_element();
 
@@ -496,6 +506,17 @@ vector<folder> prospect::find_folders(const string& mailbox) {
     return folders;
 }
 
+static enum importance parse_importance(const string_view& s) {
+    if (s == "Low")
+        return importance::low;
+    else if (s == "High")
+        return importance::high;
+    else if (s == "Normal" || s.empty())
+        return importance::normal;
+
+    throw formatted_error(FMT_STRING("Unknown importance {}."), s);
+}
+
 void prospect::find_items(const string& folder, const function<bool(const mail_item&)>& func) {
     soap s;
     xml_writer req;
@@ -515,6 +536,7 @@ void prospect::find_items(const string& folder, const function<bool(const mail_i
     field_uri(req, "item:HasAttachments");
     field_uri(req, "item:ConversationId");
     field_uri(req, "message:InternetMessageId");
+    field_uri(req, "item:Importance");
     req.end_element();
     req.end_element();
 
@@ -594,6 +616,7 @@ void prospect::find_items(const string& folder, const function<bool(const mail_i
             item.conversation_id = conversation_id;
             item.internet_id = internet_id;
             item.change_key = change_key;
+            item.importance = parse_importance(find_tag_content(c, types_ns, "Importance"));
 
             return func(item);
         });
@@ -628,6 +651,7 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
     field_uri(req, "message:CcRecipients");
     field_uri(req, "message:BccRecipients");
     field_uri(req, "item:Body");
+    field_uri(req, "item:Importance");
     req.end_element();
     req.end_element();
 
@@ -740,6 +764,7 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
             });
 
             item.body = find_tag_content(c, types_ns, "Body");
+            item.importance = parse_importance(find_tag_content(c, types_ns, "Importance"));
 
             found = true;
             func(item);

@@ -34,6 +34,12 @@
 
 namespace prospect {
 
+enum class importance {
+    normal,
+    low,
+    high
+};
+
 class PROSPECT folder {
 public:
     folder(const std::string_view& id, const std::string_view& parent, const std::string_view& change_key,
@@ -63,6 +69,7 @@ public:
     bool has_attachments;
     std::string conversation_id, internet_id, change_key, body;
     std::vector<std::string> recipients, cc, bcc;
+    enum importance importance = importance::normal;
 };
 
 class PROSPECT attachment {

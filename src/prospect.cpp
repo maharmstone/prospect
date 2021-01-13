@@ -1147,7 +1147,77 @@ subscription::~subscription() {
 }
 
 void subscription::wait(unsigned int timeout, const function<void(const string_view&, const string_view&, const string_view&, const string_view&, const string_view&)>& func) {
-    // FIXME
+
+    soap s;
+    xml_writer req;
+
+    req.start_document();
+    req.start_element("m:GetStreamingEvents");
+
+    req.start_element("m:SubscriptionIds");
+    req.element_text("t:SubscriptionId", id);
+    req.end_element();
+
+    req.element_text("m:ConnectionTimeout", to_string(timeout));
+
+    req.end_element();
+
+    req.end_document();
+
+    auto ret = s.get(p.url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw formatted_error(FMT_STRING("Could not parse response."));
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "GetStreamingEventsResponse");
+
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto serm = find_tag(response_messages, messages_ns, "GetStreamingEventsResponseMessage");
+
+        auto response_class = get_prop(serm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = find_tag_content(serm, messages_ns, "ResponseCode");
+
+            throw formatted_error(FMT_STRING("GetStreamingEvents failed ({}, {})."), response_class, response_code);
+        }
+
+        find_tags(serm, messages_ns, "Notifications", [&](xmlNodePtr c) {
+            find_tags(c, messages_ns, "Notification", [&](xmlNodePtr c) {
+                // FIXME
+    //     <t:SubscriptionId>JgBibjFwcjAzbWIyMDIubmFtcHJkMDMucHJvZC5vdXRsb29rLmNvbRAAAADwXxVesOnHS5BxUHKwAW88SHjwd1iB0Ag=</t:SubscriptionId>
+    //     <t:CreatedEvent>
+    //     <t:TimeStamp>2013-09-16T04:31:29Z</t:TimeStamp>
+    //     <t:ItemId Id="AAMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwBGAAAAAABSSWVKrmGUTJE+MVIvofglBwDZGACZQpSgSpyNkexYe2b7AAAAAAENAADZGACZQpSgSpyNkexYe2b7AAANGFYwAAA=" ChangeKey="CQAAAA==" />
+    //     <t:ParentFolderId Id="AQMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwAuAAADUkllSq5hlEyRPjFSL6H4JQEA2RgAmUKUoEqcjZHsWHtm+wAAAgENAAAA" ChangeKey="AQAAAA==" />
+    //     </t:CreatedEvent>
+    //     <t:NewMailEvent>
+    //     <t:TimeStamp>2013-09-16T04:31:29Z</t:TimeStamp>
+    //     <t:ItemId Id="AAMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwBGAAAAAABSSWVKrmGUTJE+MVIvofglBwDZGACZQpSgSpyNkexYe2b7AAAAAAENAADZGACZQpSgSpyNkexYe2b7AAANGFYwAAA=" ChangeKey="CQAAAA==" />
+    //     <t:ParentFolderId Id="AQMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwAuAAADUkllSq5hlEyRPjFSL6H4JQEA2RgAmUKUoEqcjZHsWHtm+wAAAgENAAAA" ChangeKey="AQAAAA==" />
+    //     </t:NewMailEvent>
+    //     <t:ModifiedEvent>
+    //     <t:TimeStamp>2013-09-16T04:31:29Z</t:TimeStamp>
+    //     <t:FolderId Id="AQMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwAuAAADUkllSq5hlEyRPjFSL6H4JQEA2RgAmUKUoEqcjZHsWHtm+wAAAgENAAAA" ChangeKey="AQAAAA==" />
+    //     <t:ParentFolderId Id="AQMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwAuAAADUkllSq5hlEyRPjFSL6H4JQEA2RgAmUKUoEqcjZHsWHtm+wAAAgEJAAAA" ChangeKey="AQAAAA==" />
+    //     <t:UnreadCount>1</t:UnreadCount>
+    //     </t:ModifiedEvent>
+
+                return true;
+            });
+
+            return true;
+        });
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
 }
 
 }

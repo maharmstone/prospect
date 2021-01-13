@@ -66,7 +66,7 @@ static void main2() {
 
     prospect::subscription sub(p, dir.id, { prospect::event::new_mail });
 
-    sub.wait(30, [](const string_view& timestamp, const string_view& item_id, const string_view& item_change_key, const string_view& parent_id, const string_view& parent_change_key) {
+    sub.wait(1, [](const string_view& timestamp, const string_view& item_id, const string_view& item_change_key, const string_view& parent_id, const string_view& parent_change_key) {
         fmt::print(FMT_STRING("timestamp = {}, item_id = {}, item_change_key = {}, parent_id = {}, parent_change_key = {}\n"),
                    timestamp, item_id, item_change_key, parent_id, parent_change_key);
     });

@@ -114,7 +114,8 @@ enum class event {
     modified,
     moved,
     copied,
-    free_busy_changed
+    free_busy_changed,
+    status
 };
 
 class PROSPECT subscription {
@@ -122,7 +123,9 @@ public:
     subscription(prospect& p, const std::string_view& parent, const std::vector<enum event>& events);
     ~subscription();
 
-    void wait(unsigned int timeout, const std::function<void(const std::string_view&, const std::string_view&, const std::string_view&, const std::string_view&, const std::string_view&)>& func);
+    void wait(unsigned int timeout, const std::function<void(enum event type, const std::string_view& timestamp, const std::string_view& item_id,
+                                                             const std::string_view& item_change_key, const std::string_view& parent_id,
+                                                             const std::string_view& parent_change_key)>& func);
 
     prospect& p;
 

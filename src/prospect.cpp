@@ -1096,6 +1096,10 @@ subscription::subscription(prospect& p, const string_view& parent, const vector<
                 req.element_text("t:EventType", "FreeBusyChangedEvent");
                 break;
 
+            case event::status:
+                req.element_text("t:EventType", "StatusEvent");
+                break;
+
             default:
                 throw formatted_error(FMT_STRING("Unrecognized event type {}."), ev);
         }
@@ -1146,7 +1150,7 @@ subscription::~subscription() {
     // FIXME - call Unsubscribe
 }
 
-void subscription::wait(unsigned int timeout, const function<void(const string_view&, const string_view&, const string_view&, const string_view&, const string_view&)>& func) {
+void subscription::wait(unsigned int timeout, const function<void(enum event, const string_view&, const string_view&, const string_view&, const string_view&, const string_view&)>& func) {
 
     soap s;
     xml_writer req;
@@ -1187,24 +1191,44 @@ void subscription::wait(unsigned int timeout, const function<void(const string_v
 
             find_tags(serm, messages_ns, "Notifications", [&](xmlNodePtr c) {
                 find_tags(c, messages_ns, "Notification", [&](xmlNodePtr c) {
-                    // FIXME
-        //     <t:SubscriptionId>JgBibjFwcjAzbWIyMDIubmFtcHJkMDMucHJvZC5vdXRsb29rLmNvbRAAAADwXxVesOnHS5BxUHKwAW88SHjwd1iB0Ag=</t:SubscriptionId>
-        //     <t:CreatedEvent>
-        //     <t:TimeStamp>2013-09-16T04:31:29Z</t:TimeStamp>
-        //     <t:ItemId Id="AAMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwBGAAAAAABSSWVKrmGUTJE+MVIvofglBwDZGACZQpSgSpyNkexYe2b7AAAAAAENAADZGACZQpSgSpyNkexYe2b7AAANGFYwAAA=" ChangeKey="CQAAAA==" />
-        //     <t:ParentFolderId Id="AQMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwAuAAADUkllSq5hlEyRPjFSL6H4JQEA2RgAmUKUoEqcjZHsWHtm+wAAAgENAAAA" ChangeKey="AQAAAA==" />
-        //     </t:CreatedEvent>
-        //     <t:NewMailEvent>
-        //     <t:TimeStamp>2013-09-16T04:31:29Z</t:TimeStamp>
-        //     <t:ItemId Id="AAMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwBGAAAAAABSSWVKrmGUTJE+MVIvofglBwDZGACZQpSgSpyNkexYe2b7AAAAAAENAADZGACZQpSgSpyNkexYe2b7AAANGFYwAAA=" ChangeKey="CQAAAA==" />
-        //     <t:ParentFolderId Id="AQMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwAuAAADUkllSq5hlEyRPjFSL6H4JQEA2RgAmUKUoEqcjZHsWHtm+wAAAgENAAAA" ChangeKey="AQAAAA==" />
-        //     </t:NewMailEvent>
-        //     <t:ModifiedEvent>
-        //     <t:TimeStamp>2013-09-16T04:31:29Z</t:TimeStamp>
-        //     <t:FolderId Id="AQMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwAuAAADUkllSq5hlEyRPjFSL6H4JQEA2RgAmUKUoEqcjZHsWHtm+wAAAgENAAAA" ChangeKey="AQAAAA==" />
-        //     <t:ParentFolderId Id="AQMkADkzNjJjODUzLWZhMDMtNDVkMS05ZDdjLWVmMDlkYjQ1Zjc4MwAuAAADUkllSq5hlEyRPjFSL6H4JQEA2RgAmUKUoEqcjZHsWHtm+wAAAgEJAAAA" ChangeKey="AQAAAA==" />
-        //     <t:UnreadCount>1</t:UnreadCount>
-        //     </t:ModifiedEvent>
+                    c = c->children;
+
+                    while (c) {
+                        if (c->type == XML_ELEMENT_NODE && c->ns && !strcmp((char*)c->ns->href, types_ns.c_str())) { // && !strcmp((char*)c->name, tag.c_str()))
+                            enum event ev;
+
+                            if (!strcmp((char*)c->name, "CopiedEvent"))
+                                ev = event::copied;
+                            else if (!strcmp((char*)c->name, "CreatedEvent"))
+                                ev = event::created;
+                            else if (!strcmp((char*)c->name, "DeletedEvent"))
+                                ev = event::deleted;
+                            else if (!strcmp((char*)c->name, "ModifiedEvent"))
+                                ev = event::modified;
+                            else if (!strcmp((char*)c->name, "MovedEvent"))
+                                ev = event::moved;
+                            else if (!strcmp((char*)c->name, "NewMailEvent"))
+                                ev = event::new_mail;
+                            else if (!strcmp((char*)c->name, "StatusEvent"))
+                                ev = event::status;
+                            else if (!strcmp((char*)c->name, "FreeBusyChangedEvent"))
+                                ev = event::free_busy_changed;
+                            else {
+                                c = c->next;
+                                continue;
+                            }
+
+                            auto timestamp = find_tag_content(c, types_ns, "TimeStamp");
+                            auto item_id = get_prop(find_tag(c, types_ns, "ItemId"), "Id");
+                            auto item_change_key = get_prop(find_tag(c, types_ns, "ItemId"), "ChangeKey");
+                            auto parent_id = get_prop(find_tag(c, types_ns, "ParentFolderId"), "Id");
+                            auto parent_change_key = get_prop(find_tag(c, types_ns, "ParentFolderId"), "ChangeKey");
+
+                            func(ev, timestamp, item_id, item_change_key, parent_id, parent_change_key);
+                        }
+
+                        c = c->next;
+                    }
 
                     return true;
                 });

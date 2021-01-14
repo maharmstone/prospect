@@ -19,6 +19,7 @@ static const string types_ns = "http://schemas.microsoft.com/exchange/services/2
 
 namespace prospect {
 
+#ifdef _WIN32
 static string get_domain_name() {
     char16_t buf[255];
     DWORD size = sizeof(buf) / sizeof(char16_t);
@@ -28,15 +29,18 @@ static string get_domain_name() {
 
     return utf16_to_utf8(buf);
 }
+#endif
 
 prospect::prospect(const string_view& domain) {
     string dom;
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
+#ifdef _WIN32
     if (domain.empty())
         dom = get_domain_name();
     else
+#endif
         dom = domain;
 
     map<string, string> settings{ { "ExternalEwsUrl", "" } };

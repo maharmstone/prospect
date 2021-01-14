@@ -2,8 +2,10 @@
 
 #include <string>
 #include <stdexcept>
-#include <windows.h>
 #include <fmt/format.h>
+
+#ifdef _WIN32
+#include <windows.h>
 
 static __inline std::u16string utf8_to_utf16(const std::string_view& s) {
     std::u16string ret;
@@ -86,6 +88,7 @@ public:
 private:
     std::string msg;
 };
+#endif
 
 class formatted_error : public std::exception {
 public:

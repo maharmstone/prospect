@@ -11,6 +11,11 @@
 #include "b64.h"
 #include "misc.h"
 
+#ifndef _WIN32
+#include <unistd.h>
+#include <netdb.h>
+#endif
+
 using namespace std;
 
 static const string autodiscover_ns = "http://schemas.microsoft.com/exchange/2010/Autodiscover";
@@ -19,8 +24,8 @@ static const string types_ns = "http://schemas.microsoft.com/exchange/services/2
 
 namespace prospect {
 
-#ifdef _WIN32
 static string get_domain_name() {
+#ifdef _WIN32
     char16_t buf[255];
     DWORD size = sizeof(buf) / sizeof(char16_t);
 
@@ -28,19 +33,39 @@ static string get_domain_name() {
         throw last_error("GetComputerNameEx", GetLastError());
 
     return utf16_to_utf8(buf);
-}
+#else
+    char hostname[255];
+
+    if (gethostname(hostname, sizeof(hostname)))
+        throw formatted_error(FMT_STRING("gethostname failed (errno = {})"), errno);
+
+    auto ent = gethostbyname(hostname);
+
+    if (!ent)
+        throw formatted_error(FMT_STRING("gethostbyname returned NULL"));
+
+    if (!ent->h_name)
+        throw formatted_error(FMT_STRING("ent->h_name was NULL"));
+
+    string name = ent->h_name;
+
+    auto pos = name.find(".");
+
+    if (pos != string::npos)
+        name = name.substr(pos + 1);
+
+    return name;
 #endif
+}
 
 prospect::prospect(const string_view& domain) {
     string dom;
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
-#ifdef _WIN32
     if (domain.empty())
         dom = get_domain_name();
     else
-#endif
         dom = domain;
 
     map<string, string> settings{ { "ExternalEwsUrl", "" } };

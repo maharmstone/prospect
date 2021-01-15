@@ -126,11 +126,13 @@ public:
     void wait(unsigned int timeout, const std::function<void(enum event type, const std::string_view& timestamp, const std::string_view& item_id,
                                                              const std::string_view& item_change_key, const std::string_view& parent_id,
                                                              const std::string_view& parent_change_key)>& func);
+    void cancel();
 
     prospect& p;
 
 private:
     std::string id;
+    bool cancelled = false;
 };
 
 };

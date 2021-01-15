@@ -1176,7 +1176,52 @@ subscription::subscription(prospect& p, const string_view& parent, const vector<
 }
 
 subscription::~subscription() {
-    // FIXME - call Unsubscribe
+    try {
+        if (!cancelled)
+            cancel();
+    } catch (...) {
+        // can't throw in destructor
+    }
+}
+
+void subscription::cancel() {
+    soap s;
+    xml_writer req;
+
+    req.start_document();
+    req.start_element("m:Unsubscribe");
+    req.element_text("m:SubscriptionId", id);
+    req.end_element();
+    req.end_document();
+
+    auto ret = s.get(p.url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
+
+    xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
+
+    if (!doc)
+        throw formatted_error(FMT_STRING("Could not parse response."));
+
+    try {
+        auto response = find_tag(xmlDocGetRootElement(doc), messages_ns, "UnsubscribeResponse");
+        auto response_messages = find_tag(response, messages_ns, "ResponseMessages");
+
+        auto usrm = find_tag(response_messages, messages_ns, "UnsubscribeResponseMessage");
+
+        auto response_class = get_prop(usrm, "ResponseClass");
+
+        if (response_class != "Success") {
+            auto response_code = find_tag_content(usrm, messages_ns, "ResponseCode");
+
+            throw formatted_error(FMT_STRING("Unsubscribe failed ({}, {})."), response_class, response_code);
+        }
+
+        cancelled = true;
+    } catch (...) {
+        xmlFreeDoc(doc);
+        throw;
+    }
+
+    xmlFreeDoc(doc);
 }
 
 void subscription::wait(unsigned int timeout, const function<void(enum event, const string_view&, const string_view&, const string_view&, const string_view&, const string_view&)>& func) {

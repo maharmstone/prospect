@@ -163,9 +163,7 @@ string soap::get(const string& url, const string& action, const string& header, 
     return extract_response(ret);
 }
 
-static size_t curl_write_stream_cb(char* ptr, size_t size, size_t nmemb, void* userdata) {
-    auto& func = *(soap_stream_func*)userdata;
-
+void soap::write_stream(char* ptr, size_t size, size_t nmemb) {
     auto sv = string_view(ptr, size * nmemb);
 
     while (!sv.empty() && sv[0] != '<') {
@@ -177,7 +175,13 @@ static size_t curl_write_stream_cb(char* ptr, size_t size, size_t nmemb, void* u
     }
 
     if (!sv.empty())
-        func(extract_response(sv));
+        stream_func(extract_response(sv));
+}
+
+static size_t curl_write_stream_cb(char* ptr, size_t size, size_t nmemb, void* userdata) {
+    auto& s = *(soap*)userdata;
+
+    s.write_stream(ptr, size, nmemb);
 
     return size * nmemb;
 }
@@ -210,8 +214,10 @@ void soap::get_stream(const string& url, const string& action, const string& hea
         curl_easy_setopt(curl, CURLOPT_READFUNCTION, curl_read_cb);
         curl_easy_setopt(curl, CURLOPT_READDATA, this);
 
+        stream_func = func;
+
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_stream_cb);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, func);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
 
         curl_easy_setopt(curl, CURLOPT_SEEKFUNCTION, curl_seek_cb);
         curl_easy_setopt(curl, CURLOPT_SEEKDATA, this);

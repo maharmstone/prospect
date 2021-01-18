@@ -120,6 +120,11 @@ void xml_writer::attribute(const string_view& name, const string_view& value) {
 }
 
 void xml_writer::raw(const string_view& s) {
+    if (unflushed) {
+        empty_tag = false;
+        flush_tag();
+    }
+
     buf += s;
 }
 

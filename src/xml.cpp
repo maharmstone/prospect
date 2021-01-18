@@ -5,77 +5,120 @@
 
 using namespace std;
 
-xml_writer::xml_writer() {
-    xmlInitParser();
-
-    buf = xmlBufferCreate();
-    if (!buf)
-        throw formatted_error(FMT_STRING("xmlBufferCreate failed"));
-
-    writer = xmlNewTextWriterMemory(buf, 0);
-    if (!writer) {
-        xmlBufferFree(buf);
-        throw formatted_error(FMT_STRING("xmlNewTextWriterMemory failed"));
-    }
-}
-
-xml_writer::~xml_writer() {
-    xmlFreeTextWriter(writer);
-    xmlBufferFree(buf);
-}
-
 string xml_writer::dump() const {
-    return (char*)buf->content;
+    return buf;
 }
 
 void xml_writer::start_document() {
-    int rc = xmlTextWriterStartDocument(writer, nullptr, "UTF-8", nullptr);
-    if (rc < 0)
-        throw formatted_error(FMT_STRING("xmlTextWriterStartDocument failed (error {})"), rc);
+    buf = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 }
 
-void xml_writer::end_document() {
-    int rc = xmlTextWriterEndDocument(writer);
-    if (rc < 0)
-        throw formatted_error(FMT_STRING("xmlTextWriterEndDocument failed (error {})"), rc);
+string xml_writer::escape(const string_view& s, bool att) {
+    bool need_escape = false;
+
+    for (auto c : s) {
+        if (c == '<' || c == '>' || c == '&' || (att && c == '"')) {
+            need_escape = true;
+            break;
+        }
+    }
+
+    if (!need_escape)
+        return string(s);
+
+    string ret;
+
+    ret.reserve(s.length());
+
+    for (auto c : s) {
+        switch (c) {
+            case '<':
+                ret += "&lt;";
+                break;
+
+            case '>':
+                ret += "&gt;";
+                break;
+
+            case '&':
+                ret += "&amp;";
+                break;
+
+            case '"':
+                if (att) {
+                    ret += "&quot;";
+                    break;
+                }
+                [[fallthrough]];
+
+            default:
+                ret += c;
+        }
+    }
+
+    return ret;
+}
+
+void xml_writer::flush_tag() {
+    buf += "<" + tag_name;
+
+    for (const auto& att : atts) {
+        buf += " " + escape(att.first, false) + "=\"" + escape(att.second, true) + "\"";
+    }
+
+    if (empty_tag)
+        buf += " />";
+    else
+        buf += ">";
+
+    unflushed = false;
+    atts.clear();
 }
 
 void xml_writer::start_element(const string& tag, const unordered_map<string, string>& namespaces) {
-    int rc = xmlTextWriterStartElement(writer, BAD_CAST tag.c_str());
-    if (rc < 0)
-        throw formatted_error(FMT_STRING("xmlTextWriterStartElement failed (error {})"), rc);
+    if (unflushed) {
+        empty_tag = false;
+        flush_tag();
+    }
+
+    tag_name = tag;
+    unflushed = true;
+    empty_tag = true;
 
     for (const auto& ns : namespaces) {
-        string att = ns.first.empty() ? "xmlns" : ("xmlns:" + ns.first);
-
-        rc = xmlTextWriterWriteAttribute(writer, BAD_CAST att.c_str(), BAD_CAST ns.second.c_str());
-        if (rc < 0)
-            throw formatted_error(FMT_STRING("xmlTextWriterWriteAttribute failed (error {})"), rc);
+        atts.emplace(ns.first.empty() ? "xmlns" : ("xmlns:" + ns.first), ns.second);
     }
 }
 
 void xml_writer::end_element() {
-    int rc = xmlTextWriterEndElement(writer);
-    if (rc < 0)
-        throw formatted_error(FMT_STRING("xmlTextWriterEndElement failed (error {})"), rc);
+    bool need_end = true;
+
+    if (unflushed) {
+        if (empty_tag)
+            need_end = false;
+
+        flush_tag();
+    }
+
+    if (need_end)
+        buf += "</" + tag_name + ">";
 }
 
 void xml_writer::text(const string& s) {
-    int rc = xmlTextWriterWriteString(writer, BAD_CAST s.c_str());
-    if (rc < 0)
-        throw formatted_error(FMT_STRING("xmlTextWriterWriteString failed (error {})"), rc);
+    if (unflushed) {
+        empty_tag = false;
+        flush_tag();
+    }
+
+    buf += escape(s, false);
 }
 
 void xml_writer::attribute(const string& name, const string& value) {
-    int rc = xmlTextWriterWriteAttribute(writer, BAD_CAST name.c_str(), BAD_CAST value.c_str());
-    if (rc < 0)
-        throw formatted_error(FMT_STRING("xmlTextWriterWriteAttribute failed (error {})"), rc);
+    atts.emplace(name, value);
 }
 
 void xml_writer::raw(const std::string_view& s) {
-    int rc = xmlTextWriterWriteRawLen(writer, BAD_CAST s.data(), (int)s.length());
-    if (rc < 0)
-        throw formatted_error(FMT_STRING("xmlTextWriterWriteRawLen failed (error {})"), rc);
+    buf += s;
 }
 
 xmlNodePtr find_tag(xmlNodePtr root, const string& ns, const string& name) {

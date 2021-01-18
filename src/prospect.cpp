@@ -136,7 +136,6 @@ void prospect::get_user_settings(const string& url, const string& mailbox, map<s
 
     req.end_element();
     req.end_element();
-    req.end_document();
 
     string header = "<a:RequestedServerVersion>Exchange2010</a:RequestedServerVersion><wsa:Action>" + action + "</wsa:Action><wsa:To>" + url + "</wsa:To>";
 
@@ -209,7 +208,6 @@ void prospect::get_domain_settings(const string& url, const string& domain, map<
 
     req.end_element();
     req.end_element();
-    req.end_document();
 
     string header = "<a:RequestedServerVersion>Exchange2010</a:RequestedServerVersion><wsa:Action>" + action + "</wsa:Action><wsa:To>" + url + "</wsa:To>";
 
@@ -300,8 +298,6 @@ void mail_item::send_email() const {
     req.end_element();
 
     req.end_element();
-
-    req.end_document();
 
     auto ret = s.get(p.url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
@@ -410,8 +406,6 @@ void mail_item::send_reply(const string& item_id, const string& change_key, bool
 
     req.end_element();
 
-    req.end_document();
-
     auto ret = s.get(p.url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
@@ -479,8 +473,6 @@ vector<folder> prospect::find_folders(const string& mailbox) {
     req.end_element();
 
     req.end_element();
-
-    req.end_document();
 
     auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
@@ -586,8 +578,6 @@ void prospect::find_items(const string& folder, const function<bool(const mail_i
 
     req.end_element();
 
-    req.end_document();
-
     // FIXME - only get so many at once?
 
     auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
@@ -691,8 +681,6 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
     req.end_element();
 
     req.end_element();
-
-    req.end_document();
 
     auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
@@ -832,8 +820,6 @@ vector<attachment> prospect::get_attachments(const string& item_id) {
 
     req.end_element();
 
-    req.end_document();
-
     auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
@@ -906,8 +892,6 @@ string prospect::read_attachment(const string& id) {
 
     req.end_element();
 
-    req.end_document();
-
     auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
@@ -968,8 +952,6 @@ string prospect::move_item(const string& id, const string& folder) {
     req.end_element();
 
     req.end_element();
-
-    req.end_document();
 
     auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
@@ -1036,8 +1018,6 @@ string prospect::create_folder(const string_view& parent, const string_view& nam
     req.end_element();
 
     req.end_element();
-
-    req.end_document();
 
     auto ret = s.get(url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
@@ -1140,8 +1120,6 @@ subscription::subscription(prospect& p, const string_view& parent, const vector<
 
     req.end_element();
 
-    req.end_document();
-
     auto ret = s.get(p.url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
@@ -1192,7 +1170,6 @@ void subscription::cancel() {
     req.start_element("m:Unsubscribe");
     req.element_text("m:SubscriptionId", id);
     req.end_element();
-    req.end_document();
 
     auto ret = s.get(p.url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump());
 
@@ -1239,8 +1216,6 @@ void subscription::wait(unsigned int timeout, const function<void(enum event, co
     req.element_text("m:ConnectionTimeout", to_string(timeout));
 
     req.end_element();
-
-    req.end_document();
 
     s.get_stream(p.url, "", "<t:RequestServerVersion Version=\"Exchange2010\" />", req.dump(), [&](const string_view& ret) {
         xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);

@@ -57,7 +57,6 @@ string soap::create_xml(const string_view& header, const string_view& body) {
     req.end_element();
 
     req.end_element();
-    req.end_document();
 
     return req.dump();
 }

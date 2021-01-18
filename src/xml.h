@@ -3,15 +3,12 @@
 #include <string>
 #include <unordered_map>
 #include <functional>
-#include <libxml/xmlwriter.h>
+#include <libxml/tree.h>
 
 class xml_writer {
 public:
-    xml_writer();
-    ~xml_writer();
     std::string dump() const;
     void start_document();
-    void end_document();
     void start_element(const std::string& tag, const std::unordered_map<std::string, std::string>& namespaces = {});
     void end_element();
     void text(const std::string& s);
@@ -26,8 +23,14 @@ public:
     void attribute(const std::string& name, const std::string& value);
 
 private:
-    xmlBufferPtr buf;
-    xmlTextWriterPtr writer;
+    void flush_tag();
+    std::string escape(const std::string_view& s, bool att);
+
+    std::string buf;
+    bool unflushed = false;
+    std::string tag_name;
+    std::unordered_map<std::string, std::string> atts;
+    bool empty_tag;
 };
 
 xmlNodePtr find_tag(xmlNodePtr root, const std::string& ns, const std::string& name);

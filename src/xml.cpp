@@ -60,7 +60,7 @@ string xml_writer::escape(const string_view& s, bool att) {
 }
 
 void xml_writer::flush_tag() {
-    buf += "<" + tag_name;
+    buf += "<" + tag_names.top();
 
     for (const auto& att : atts) {
         buf += " " + escape(att.first, false) + "=\"" + escape(att.second, true) + "\"";
@@ -81,7 +81,7 @@ void xml_writer::start_element(const string_view& tag, const unordered_map<strin
         flush_tag();
     }
 
-    tag_name = tag;
+    tag_names.push(string(tag));
     unflushed = true;
     empty_tag = true;
 
@@ -101,7 +101,9 @@ void xml_writer::end_element() {
     }
 
     if (need_end)
-        buf += "</" + tag_name + ">";
+        buf += "</" + tag_names.top() + ">";
+
+    tag_names.pop();
 }
 
 void xml_writer::text(const string_view& s) {

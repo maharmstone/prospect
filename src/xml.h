@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <functional>
+#include <stack>
 #include <libxml/tree.h>
 
 class xml_writer {
@@ -28,7 +29,7 @@ private:
 
     std::string buf;
     bool unflushed = false;
-    std::string tag_name;
+    std::stack<std::string> tag_names;
     std::unordered_map<std::string, std::string> atts;
     bool empty_tag;
 };

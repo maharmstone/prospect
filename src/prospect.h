@@ -60,7 +60,7 @@ public:
     mail_item(prospect& p) : p(p) { }
 
     void send_email() const;
-    void send_reply(const std::string& item_id, const std::string& change_key, bool reply_all) const;
+    void send_reply(const std::string_view& item_id, const std::string_view& change_key, bool reply_all) const;
 
     prospect& p;
     std::string id, subject, received;
@@ -90,14 +90,14 @@ public:
     prospect(const std::string_view& domain = "");
     ~prospect();
 
-    void get_domain_settings(const std::string& url, const std::string& domain, std::map<std::string, std::string>& settings);
-    void get_user_settings(const std::string& url, const std::string& mailbox, std::map<std::string, std::string>& settings);
-    std::vector<folder> find_folders(const std::string& mailbox = "");
-    void find_items(const std::string& folder, const std::function<bool(const mail_item&)>& func);
-    bool get_item(const std::string& id, const std::function<bool(const mail_item&)>& func);
-    std::vector<attachment> get_attachments(const std::string& item_id);
-    std::string read_attachment(const std::string& id);
-    std::string move_item(const std::string& id, const std::string& folder);
+    void get_domain_settings(const std::string& url, const std::string_view& domain, std::map<std::string, std::string>& settings);
+    void get_user_settings(const std::string& url, const std::string_view& mailbox, std::map<std::string, std::string>& settings);
+    std::vector<folder> find_folders(const std::string_view& mailbox = "");
+    void find_items(const std::string_view& folder, const std::function<bool(const mail_item&)>& func);
+    bool get_item(const std::string_view& id, const std::function<bool(const mail_item&)>& func);
+    std::vector<attachment> get_attachments(const std::string_view& item_id);
+    std::string read_attachment(const std::string_view& id);
+    std::string move_item(const std::string_view& id, const std::string_view& folder);
     std::string create_folder(const std::string_view& parent, const std::string_view& name, const std::vector<folder>& folders);
 
     friend class mail_item;

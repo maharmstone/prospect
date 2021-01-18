@@ -75,7 +75,7 @@ void xml_writer::flush_tag() {
     atts.clear();
 }
 
-void xml_writer::start_element(const string& tag, const unordered_map<string, string>& namespaces) {
+void xml_writer::start_element(const string_view& tag, const unordered_map<string, string>& namespaces) {
     if (unflushed) {
         empty_tag = false;
         flush_tag();
@@ -104,7 +104,7 @@ void xml_writer::end_element() {
         buf += "</" + tag_name + ">";
 }
 
-void xml_writer::text(const string& s) {
+void xml_writer::text(const string_view& s) {
     if (unflushed) {
         empty_tag = false;
         flush_tag();
@@ -113,11 +113,11 @@ void xml_writer::text(const string& s) {
     buf += escape(s, false);
 }
 
-void xml_writer::attribute(const string& name, const string& value) {
+void xml_writer::attribute(const string_view& name, const string_view& value) {
     atts.emplace(name, value);
 }
 
-void xml_writer::raw(const std::string_view& s) {
+void xml_writer::raw(const string_view& s) {
     buf += s;
 }
 

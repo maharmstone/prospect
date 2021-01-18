@@ -110,7 +110,7 @@ static void parse_get_user_settings_response(xmlNodePtr n, map<string, string>& 
     });
 }
 
-void prospect::get_user_settings(const string& url, const string& mailbox, map<string, string>& settings) {
+void prospect::get_user_settings(const string& url, const string_view& mailbox, map<string, string>& settings) {
     soap s;
     xml_writer req;
 
@@ -184,7 +184,7 @@ static void parse_get_domain_settings_response(xmlNodePtr n, map<string, string>
     });
 }
 
-void prospect::get_domain_settings(const string& url, const string& domain, map<string, string>& settings) {
+void prospect::get_domain_settings(const string& url, const string_view& domain, map<string, string>& settings) {
     soap s;
     xml_writer req;
 
@@ -328,7 +328,7 @@ void mail_item::send_email() const {
     xmlFreeDoc(doc);
 }
 
-void mail_item::send_reply(const string& item_id, const string& change_key, bool reply_all) const {
+void mail_item::send_reply(const string_view& item_id, const string_view& change_key, bool reply_all) const {
     soap s;
     xml_writer req;
 
@@ -435,13 +435,13 @@ void mail_item::send_reply(const string& item_id, const string& change_key, bool
     xmlFreeDoc(doc);
 }
 
-static void field_uri(xml_writer& req, const string& uri) {
+static void field_uri(xml_writer& req, const string_view& uri) {
     req.start_element("t:FieldURI");
     req.attribute("FieldURI", uri);
     req.end_element();
 }
 
-vector<folder> prospect::find_folders(const string& mailbox) {
+vector<folder> prospect::find_folders(const string_view& mailbox) {
     soap s;
     xml_writer req;
 
@@ -538,7 +538,7 @@ static enum importance parse_importance(const string_view& s) {
     throw formatted_error(FMT_STRING("Unknown importance {}."), s);
 }
 
-void prospect::find_items(const string& folder, const function<bool(const mail_item&)>& func) {
+void prospect::find_items(const string_view& folder, const function<bool(const mail_item&)>& func) {
     soap s;
     xml_writer req;
 
@@ -647,7 +647,7 @@ void prospect::find_items(const string& folder, const function<bool(const mail_i
     xmlFreeDoc(doc);
 }
 
-bool prospect::get_item(const string& id, const function<bool(const mail_item&)>& func) {
+bool prospect::get_item(const string_view& id, const function<bool(const mail_item&)>& func) {
     soap s;
     xml_writer req;
     bool found = false;
@@ -798,7 +798,7 @@ bool prospect::get_item(const string& id, const function<bool(const mail_item&)>
     return found;
 }
 
-vector<attachment> prospect::get_attachments(const string& item_id) {
+vector<attachment> prospect::get_attachments(const string_view& item_id) {
     soap s;
     xml_writer req;
 
@@ -877,7 +877,7 @@ vector<attachment> prospect::get_attachments(const string& item_id) {
     return v;
 }
 
-string prospect::read_attachment(const string& id) {
+string prospect::read_attachment(const string_view& id) {
     soap s;
     xml_writer req;
 
@@ -931,7 +931,7 @@ string prospect::read_attachment(const string& id) {
     return b64decode(content);
 }
 
-string prospect::move_item(const string& id, const string& folder) {
+string prospect::move_item(const string_view& id, const string_view& folder) {
     soap s;
     xml_writer req;
     string new_id;

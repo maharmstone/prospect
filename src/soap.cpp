@@ -4,8 +4,11 @@
 #include "soap.h"
 #include "xml.h"
 #include "misc.h"
+#include <iostream>
 
 using namespace std;
+
+// #define DEBUG_CURL
 
 static const unordered_map<string, string> namespaces = {
     { "soap", "http://schemas.xmlsoap.org/soap/envelope/" },
@@ -98,6 +101,74 @@ int soap::seek(curl_off_t offset, int origin) {
     }
 }
 
+#ifdef DEBUG_CURL
+static void dump(const char* text, FILE* stream, unsigned char* ptr, size_t size) {
+    size_t i;
+    size_t c;
+
+    const unsigned int width = 0x10;
+
+    fprintf(stream, "%s, %10.10lu bytes (0x%8.8lx)\n",
+            text, (unsigned long)size, (unsigned long)size);
+
+    for(i = 0; i<size; i += width) {
+        fprintf(stream, "%4.4lx: ", (unsigned long)i);
+
+        for(c = 0; c < width; c++) {
+            if(i + c < size)
+                fprintf(stream, "%02x ", ptr[i + c]);
+            else
+                fputs("   ", stream);
+        }
+
+        for(c = 0; (c < width) && (i + c < size); c++) {
+                fprintf(stream, "%c",
+                        (ptr[i + c] >= 0x20) && (ptr[i + c]<0x80)?ptr[i + c]:'.');
+        }
+
+        fputc('\n', stream);
+    }
+
+    fflush(stream);
+}
+
+static int trace(CURL*, curl_infotype type, char* data, size_t size) {
+    const char *text;
+
+    switch (type) {
+        case CURLINFO_TEXT:
+            fprintf(stderr, "== Info: %s", data);
+            return 0;
+
+        case CURLINFO_HEADER_OUT:
+            text = "=> Send header";
+            break;
+        case CURLINFO_DATA_OUT:
+            text = "=> Send data";
+            break;
+        case CURLINFO_SSL_DATA_OUT:
+            text = "=> Send SSL data";
+            break;
+        case CURLINFO_HEADER_IN:
+            text = "<= Recv header";
+            break;
+        case CURLINFO_DATA_IN:
+            text = "<= Recv data";
+            break;
+        case CURLINFO_SSL_DATA_IN:
+            text = "<= Recv SSL data";
+            break;
+
+        default:
+            return 0;
+    }
+
+    dump(text, stderr, (unsigned char*)data, size);
+
+    return 0;
+}
+#endif
+
 string soap::get(const string& url, const string& action, const string& header, const string& body) {
     string soap_action = "SOAPAction: " + action;
 
@@ -114,6 +185,11 @@ string soap::get(const string& url, const string& action, const string& header, 
         long error_code;
 
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+
+#ifdef DEBUG_CURL
+        curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, trace);
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+#endif
 
         curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_NEGOTIATE);
         curl_easy_setopt(curl, CURLOPT_USERPWD, ":");

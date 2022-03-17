@@ -18,7 +18,7 @@ static const unordered_map<string, string> namespaces = {
     { "t", "http://schemas.microsoft.com/exchange/services/2006/types" }
 };
 
-static string extract_response(const string_view& ret);
+static string extract_response(string_view ret);
 
 static size_t curl_read_cb(void* dest, size_t size, size_t nmemb, void* userdata) {
     auto& s = *(soap*)userdata;
@@ -34,7 +34,7 @@ static size_t curl_write_cb(char* ptr, size_t size, size_t nmemb, void* userdata
     return size * nmemb;
 }
 
-string soap::create_xml(const string_view& header, const string_view& body) {
+string soap::create_xml(string_view header, string_view body) {
     string body2{body};
     xml_writer req;
 
@@ -343,7 +343,7 @@ size_t soap::read(void* ptr, size_t size) {
     return size;
 }
 
-static string extract_response(const string_view& ret) {
+static string extract_response(string_view ret) {
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)

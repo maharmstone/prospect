@@ -13,7 +13,7 @@ void xml_writer::start_document() {
     buf = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 }
 
-string xml_writer::escape(const string_view& s, bool att) {
+string xml_writer::escape(string_view s, bool att) {
     bool need_escape = false;
 
     for (auto c : s) {
@@ -75,7 +75,7 @@ void xml_writer::flush_tag() {
     atts.clear();
 }
 
-void xml_writer::start_element(const string_view& tag, const unordered_map<string, string>& namespaces) {
+void xml_writer::start_element(string_view tag, const unordered_map<string, string>& namespaces) {
     if (unflushed) {
         empty_tag = false;
         flush_tag();
@@ -106,7 +106,7 @@ void xml_writer::end_element() {
     tag_names.pop();
 }
 
-void xml_writer::text(const string_view& s) {
+void xml_writer::text(string_view s) {
     if (unflushed) {
         empty_tag = false;
         flush_tag();
@@ -115,11 +115,11 @@ void xml_writer::text(const string_view& s) {
     buf += escape(s, false);
 }
 
-void xml_writer::attribute(const string_view& name, const string_view& value) {
+void xml_writer::attribute(string_view name, string_view value) {
     atts.emplace(name, value);
 }
 
-void xml_writer::raw(const string_view& s) {
+void xml_writer::raw(string_view s) {
     if (unflushed) {
         empty_tag = false;
         flush_tag();

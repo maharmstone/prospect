@@ -3,7 +3,7 @@
 #include <string>
 #include <functional>
 
-using soap_stream_func = std::function<void(const std::string_view&)>;
+using soap_stream_func = std::function<void(std::string_view)>;
 
 class soap {
 public:
@@ -16,7 +16,7 @@ public:
     void write_stream(char* ptr, size_t size, size_t nmemb);
 
 private:
-    std::string create_xml(const std::string_view& header, const std::string_view& body);
+    std::string create_xml(std::string_view header, std::string_view body);
 
     std::string ret;
     std::string payload;

@@ -10,22 +10,22 @@ class xml_writer {
 public:
     std::string dump() const;
     void start_document();
-    void start_element(const std::string_view& tag, const std::unordered_map<std::string, std::string>& namespaces = {});
+    void start_element(std::string_view tag, const std::unordered_map<std::string, std::string>& namespaces = {});
     void end_element();
-    void text(const std::string_view& s);
-    void raw(const std::string_view& s);
+    void text(std::string_view s);
+    void raw(std::string_view s);
 
-    void element_text(const std::string_view& tag, const std::string_view& s, const std::unordered_map<std::string, std::string>& namespaces = {}) {
+    void element_text(std::string_view tag, std::string_view s, const std::unordered_map<std::string, std::string>& namespaces = {}) {
         start_element(tag, namespaces);
         text(s);
         end_element();
     }
 
-    void attribute(const std::string_view& name, const std::string_view& value);
+    void attribute(std::string_view name, std::string_view value);
 
 private:
     void flush_tag();
-    std::string escape(const std::string_view& s, bool att);
+    std::string escape(std::string_view s, bool att);
 
     std::string buf;
     bool unflushed = false;

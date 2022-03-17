@@ -15,7 +15,7 @@ static const prospect::folder& find_inbox(const vector<prospect::folder>& folder
     throw runtime_error("Folder \"Inbox\" not found.");
 }
 
-static const prospect::folder& find_folder(const string_view& parent, const string_view& name, const vector<prospect::folder>& folders) {
+static const prospect::folder& find_folder(string_view parent, string_view name, const vector<prospect::folder>& folders) {
     for (const auto& f : folders) {
         if (f.parent == parent && f.display_name == name)
             return f;
@@ -66,7 +66,7 @@ static void main2() {
 
     prospect::subscription sub(p, inbox.id, { prospect::event::new_mail });
 
-    sub.wait(1, [](enum prospect::event type, const string_view& timestamp, const string_view& item_id, const string_view& item_change_key, const string_view& parent_id, const string_view& parent_change_key) {
+    sub.wait(1, [](enum prospect::event type, string_view timestamp, string_view item_id, string_view item_change_key, string_view parent_id, string_view parent_change_key) {
         fmt::print("type = {}, timestamp = {}, item_id = {}, item_change_key = {}, parent_id = {}, parent_change_key = {}\n",
                    (unsigned int)type, timestamp, item_id, item_change_key, parent_id, parent_change_key);
     });

@@ -3,6 +3,7 @@
 #include <string>
 #include <stdexcept>
 #include <fmt/format.h>
+#include <fmt/compile.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -90,10 +91,10 @@ private:
 };
 #endif
 
-class formatted_error : public std::exception {
+class _formatted_error : public std::exception {
 public:
     template<typename T, typename... Args>
-    formatted_error(const T& s, Args&&... args) {
+    _formatted_error(const T& s, Args&&... args) {
         msg = fmt::format(s, std::forward<Args>(args)...);
     }
 
@@ -104,3 +105,5 @@ public:
 private:
     std::string msg;
 };
+
+#define formatted_error(s, ...) _formatted_error(FMT_COMPILE(s), ##__VA_ARGS__)

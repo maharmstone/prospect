@@ -176,7 +176,7 @@ string soap::get(const string& url, const string& action, const string& header, 
     CURL* curl = curl_easy_init();
 
     if (!curl)
-        throw formatted_error(FMT_STRING("Failed to initialize cURL."));
+        throw formatted_error("Failed to initialize cURL.");
 
     payload = create_xml(header, body);
 
@@ -210,24 +210,24 @@ string soap::get(const string& url, const string& action, const string& header, 
         chunk = curl_slist_append(chunk, "Content-Type: text/xml;charset=UTF-8");
         res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
         if (res != CURLE_OK)
-            throw formatted_error(FMT_STRING("curl_easy_setopt failed: {}"), curl_easy_strerror(res));
+            throw formatted_error("curl_easy_setopt failed: {}", curl_easy_strerror(res));
 
         if (!action.empty()) {
             chunk = curl_slist_append(chunk, soap_action.c_str());
             res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
             if (res != CURLE_OK)
-                throw formatted_error(FMT_STRING("curl_easy_setopt failed: {}"), curl_easy_strerror(res));
+                throw formatted_error("curl_easy_setopt failed: {}", curl_easy_strerror(res));
         }
 
         res = curl_easy_perform(curl);
 
         if (res != CURLE_OK)
-            throw formatted_error(FMT_STRING("curl_easy_perform failed: {}"), curl_easy_strerror(res));
+            throw formatted_error("curl_easy_perform failed: {}", curl_easy_strerror(res));
 
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &error_code);
 
         if (error_code >= 400)
-            throw formatted_error(FMT_STRING("HTTP error {}"), error_code);
+            throw formatted_error("HTTP error {}", error_code);
     } catch (...) {
         curl_easy_cleanup(curl);
         throw;
@@ -269,7 +269,7 @@ void soap::get_stream(const string& url, const string& action, const string& hea
     CURL* curl = curl_easy_init();
 
     if (!curl)
-        throw formatted_error(FMT_STRING("Failed to initialize cURL."));
+        throw formatted_error("Failed to initialize cURL.");
 
     payload = create_xml(header, body);
 
@@ -302,24 +302,24 @@ void soap::get_stream(const string& url, const string& action, const string& hea
         chunk = curl_slist_append(chunk, "Content-Type: text/xml;charset=UTF-8");
         res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
         if (res != CURLE_OK)
-            throw formatted_error(FMT_STRING("curl_easy_setopt failed: {}"), curl_easy_strerror(res));
+            throw formatted_error("curl_easy_setopt failed: {}", curl_easy_strerror(res));
 
         if (!action.empty()) {
             chunk = curl_slist_append(chunk, soap_action.c_str());
             res = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, chunk);
             if (res != CURLE_OK)
-                throw formatted_error(FMT_STRING("curl_easy_setopt failed: {}"), curl_easy_strerror(res));
+                throw formatted_error("curl_easy_setopt failed: {}", curl_easy_strerror(res));
         }
 
         res = curl_easy_perform(curl);
 
         if (res != CURLE_OK)
-            throw formatted_error(FMT_STRING("curl_easy_perform failed: {}"), curl_easy_strerror(res));
+            throw formatted_error("curl_easy_perform failed: {}", curl_easy_strerror(res));
 
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &error_code);
 
         if (error_code >= 400)
-            throw formatted_error(FMT_STRING("HTTP error {}"), error_code);
+            throw formatted_error("HTTP error {}", error_code);
     } catch (...) {
         curl_easy_cleanup(curl);
         throw;
@@ -347,7 +347,7 @@ static string extract_response(const string_view& ret) {
     xmlDocPtr doc = xmlReadMemory(ret.data(), (int)ret.length(), nullptr, nullptr, 0);
 
     if (!doc)
-        throw formatted_error(FMT_STRING("Invalid XML."));
+        throw formatted_error("Invalid XML.");
 
     try {
         xmlNodePtr root, n;
@@ -355,10 +355,10 @@ static string extract_response(const string_view& ret) {
         root = xmlDocGetRootElement(doc);
 
         if (!root)
-            throw formatted_error(FMT_STRING("Root element not found."));
+            throw formatted_error("Root element not found.");
 
         if (!root->ns || strcmp((char*)root->ns->href, "http://schemas.xmlsoap.org/soap/envelope/") || strcmp((char*)root->name, "Envelope"))
-            throw formatted_error(FMT_STRING("Root element was not soap:Envelope."));
+            throw formatted_error("Root element was not soap:Envelope.");
 
         n = root->children;
 
@@ -367,16 +367,16 @@ static string extract_response(const string_view& ret) {
                 xmlBufferPtr buf = xmlBufferCreate();
 
                 if (!buf)
-                    throw formatted_error(FMT_STRING("xmlBufferCreate failed."));
+                    throw formatted_error("xmlBufferCreate failed.");
 
                 try {
                     xmlNodePtr copy = xmlCopyNode(n, 1);
                     if (!copy)
-                        throw formatted_error(FMT_STRING("xmlCopyNode failed."));
+                        throw formatted_error("xmlCopyNode failed.");
 
                     if (xmlNodeDump(buf, doc, copy, 0, 0) == 0) {
                         xmlFreeNode(copy);
-                        throw formatted_error(FMT_STRING("xmlNodeDump failed."));
+                        throw formatted_error("xmlNodeDump failed.");
                     }
 
                     xmlFreeNode(copy);
@@ -395,7 +395,7 @@ static string extract_response(const string_view& ret) {
             n = n->next;
         }
 
-        throw formatted_error(FMT_STRING("soap:Body not found in response."));
+        throw formatted_error("soap:Body not found in response.");
     } catch (...) {
         xmlFreeDoc(doc);
         throw;

@@ -138,7 +138,7 @@ xmlNodePtr find_tag(xmlNodePtr root, const string& ns, const string& name) {
         n = n->next;
     }
 
-    throw formatted_error(FMT_STRING("Could not find {} tag"), name);
+    throw formatted_error("Could not find {} tag", name);
 }
 
 string find_tag_content(xmlNodePtr root, const string& ns, const string& name) noexcept {

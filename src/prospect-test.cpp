@@ -2,7 +2,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <fmt/format.h>
+#include <format>
 
 using namespace std;
 
@@ -32,8 +32,8 @@ static void main2() {
     auto folders = p.find_folders();
 
     for (const auto& f : folders) {
-        fmt::print("Folder: ID {}, parent {}, change key {}, display name {}, total {}, child folder count {}, unread {}\n",
-                   f.id, f.parent, f.change_key, f.display_name, f.total_count, f.child_folder_count, f.unread_count);
+        cout << format("Folder: ID {}, parent {}, change key {}, display name {}, total {}, child folder count {}, unread {}\n",
+                       f.id, f.parent, f.change_key, f.display_name, f.total_count, f.child_folder_count, f.unread_count);
     }
 
     const auto& inbox = find_inbox(folders);
@@ -42,18 +42,18 @@ static void main2() {
     const auto& processed_dir_id = p.create_folder(dir.id, "processed", folders);
 
     p.find_items(dir.id, [&](const prospect::mail_item& item) {
-        fmt::print("Message {}, subject {}, received {}, read {}, has attachments {}, sender {} <{}>\n", item.id, item.subject,
-                   item.received, item.read, item.has_attachments, item.sender_name, item.sender_email);
+        cout << format("Message {}, subject {}, received {}, read {}, has attachments {}, sender {} <{}>\n", item.id, item.subject,
+                       item.received, item.read, item.has_attachments, item.sender_name, item.sender_email);
 
         if (item.has_attachments) {
             auto attachments = p.get_attachments(item.id);
 
             for (const auto& att : attachments) {
-                fmt::print("Attachment: ID {}, name {}, size {}, modified {}\n", att.id, att.name, att.size, att.modified);
+                cout << format("Attachment: ID {}, name {}, size {}, modified {}\n", att.id, att.name, att.size, att.modified);
 
                 auto str = p.read_attachment(att.id);
 
-                fmt::print("Content: {}\n", str);
+                cout << format("Content: {}\n", str);
 
                 // FIXME - save attachment
             }
@@ -67,8 +67,8 @@ static void main2() {
     prospect::subscription sub(p, inbox.id, { prospect::event::new_mail });
 
     sub.wait(1, [](enum prospect::event type, string_view timestamp, string_view item_id, string_view item_change_key, string_view parent_id, string_view parent_change_key) {
-        fmt::print("type = {}, timestamp = {}, item_id = {}, item_change_key = {}, parent_id = {}, parent_change_key = {}\n",
-                   (unsigned int)type, timestamp, item_id, item_change_key, parent_id, parent_change_key);
+        cout << format("type = {}, timestamp = {}, item_id = {}, item_change_key = {}, parent_id = {}, parent_change_key = {}\n",
+                       (unsigned int)type, timestamp, item_id, item_change_key, parent_id, parent_change_key);
     });
 }
 

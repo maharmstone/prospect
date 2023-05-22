@@ -7,7 +7,7 @@ project(prospect)
 
 option(BUILD_SAMPLE "Build sample program" ON)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
@@ -24,11 +24,8 @@ set(SRC_FILES
 
 add_library(prospect SHARED ${SRC_FILES})
 
-find_package(fmt REQUIRED)
-
 target_link_libraries(prospect ${LIBXML2_LIBRARIES})
 target_link_libraries(prospect ${CURL_LIBRARIES})
-target_link_libraries(prospect fmt::fmt-header-only)
 
 target_include_directories(prospect PUBLIC "${LIBXML2_INCLUDE_DIR}")
 target_include_directories(prospect PUBLIC "${CURL_INCLUDE_DIRS}")

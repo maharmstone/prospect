@@ -1,6 +1,7 @@
 #include <stdexcept>
 #include <string.h>
 #include <curl/curl.h>
+#include <stdint.h>
 #include "soap.h"
 #include "xml.h"
 #include "misc.h"

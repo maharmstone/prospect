@@ -51,11 +51,19 @@ install(TARGETS prospect
 	PRIVATE_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
 )
 
+if(MSVC)
+	install(FILES $<TARGET_PDB_FILE:prospect> DESTINATION bin OPTIONAL)
+endif()
+
 if(BUILD_SAMPLE)
 	add_executable(prospect-test src/prospect-test.cpp)
 	target_include_directories(prospect-test PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 	target_link_libraries(prospect-test prospect)
 	install(TARGETS prospect-test DESTINATION "${CMAKE_INSTALL_BINDIR}")
+
+	if(MSVC)
+		install(FILES $<TARGET_PDB_FILE:prospect-test> DESTINATION bin OPTIONAL)
+	endif()
 endif()
 
 install(EXPORT prospect-targets DESTINATION lib/cmake/prospect)

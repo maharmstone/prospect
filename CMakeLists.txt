@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 project(prospect
 	LANGUAGES CXX)
@@ -14,6 +14,7 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 find_package(LibXml2 REQUIRED)
 find_package(CURL REQUIRED)
+find_package(Iconv REQUIRED) # for libxml2
 
 add_definitions(-DPROSPECT_EXPORT)
 
@@ -25,11 +26,9 @@ set(SRC_FILES
 
 add_library(prospect SHARED ${SRC_FILES})
 
-target_link_libraries(prospect ${LIBXML2_LIBRARIES})
-target_link_libraries(prospect ${CURL_LIBRARIES})
-
-target_include_directories(prospect PUBLIC "${LIBXML2_INCLUDE_DIR}")
-target_include_directories(prospect PUBLIC "${CURL_INCLUDE_DIRS}")
+target_link_libraries(prospect LibXml2::LibXml2)
+target_link_libraries(prospect CURL::libcurl)
+target_link_libraries(prospect Iconv::Iconv)
 
 target_compile_options(prospect PRIVATE
 	$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:

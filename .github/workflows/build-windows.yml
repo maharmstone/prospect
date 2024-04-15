@@ -1,0 +1,23 @@
+name: build x86_64-pc-windows-msvc
+on: [push]
+env:
+   PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/etc/eselect/wine/bin
+jobs:
+  x86_64-pc-windows-msvc:
+    runs-on: msvc-wine
+    steps:
+      - run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
+      - run: git clone ${{ github.server_url }}/${{ github.repository }} ${SHORT_SHA}
+      - run: cd ${SHORT_SHA} && git checkout ${{ github.sha }}
+      - run: mkdir libxml2 && cd libxml2 && wget -qO- https://www.burntcomma.com/libxml2-2.9.12-x86_64-pc-windows-msvc.tar.gz | tar -xz
+      - run: mkdir curl && cd curl && wget -qO- https://www.burntcomma.com/curl-7.74.0-x86_64-pc-windows-msvc.tar.gz | tar -xz
+      - run: mkdir libiconv && cd libiconv && wget -qO- https://www.burntcomma.com/libiconv-1.16-x86_64-pc-windows-msvc.tar.gz | tar -xz
+      - run: cmake -DCMAKE_TOOLCHAIN_FILE=msvc-amd64.cmake -DLibXml2_ROOT="${PWD}/libxml2/debug" -DLIBXML2_INCLUDE_DIR="${PWD}/libxml2/include" -DCURL_ROOT="${PWD}/curl/debug" -DCURL_INCLUDE_DIR="${PWD}/curl/include" -DCURL_NO_CURL_CMAKE=ON -DIconv_ROOT="${PWD}/libiconv/debug" -DIconv_INCLUDE_DIR="${PWD}/libiconv/include" -DCMAKE_INSTALL_PREFIX=${PWD}/build/debug -DCMAKE_BUILD_TYPE=Debug -S ${SHORT_SHA} -B build/debug-work && cmake --build build/debug-work --parallel `nproc` && cmake --install build/debug-work
+      - run: cmake -DCMAKE_TOOLCHAIN_FILE=msvc-amd64.cmake -DLibXml2_ROOT="${PWD}/libxml2" -DLIBXML2_INCLUDE_DIR="${PWD}/libxml2/include" -DCURL_ROOT="${PWD}/curl" -DCURL_INCLUDE_DIR="${PWD}/curl/include" -DCURL_NO_CURL_CMAKE=ON -DIconv_ROOT="${PWD}/libiconv" -DIconv_INCLUDE_DIR="${PWD}/libiconv/include" -DCMAKE_INSTALL_PREFIX=${PWD}/build/release -DCMAKE_BUILD_TYPE=RelWithDebInfo -S ${SHORT_SHA} -B build/release-work && cmake --build build/release-work --parallel `nproc` && cmake --install build/release-work
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.sha }}
+          overwrite: true
+          path: |
+            build/debug
+            build/release

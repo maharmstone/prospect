@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
+project(prospect
+	LANGUAGES CXX)
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
-
-project(prospect)
 
 option(BUILD_SAMPLE "Build sample program" ON)
 

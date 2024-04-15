@@ -38,6 +38,11 @@ target_compile_options(prospect PRIVATE
 
 set_target_properties(prospect PROPERTIES PUBLIC_HEADER src/prospect.h)
 
+target_include_directories(prospect PUBLIC
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
 if(WIN32 AND NOT MSVC)
 	target_link_options(prospect PUBLIC -static -static-libgcc -static-libstdc++)
 endif()
@@ -57,7 +62,6 @@ endif()
 
 if(BUILD_SAMPLE)
 	add_executable(prospect-test src/prospect-test.cpp)
-	target_include_directories(prospect-test PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 	target_link_libraries(prospect-test prospect)
 	install(TARGETS prospect-test DESTINATION "${CMAKE_INSTALL_BINDIR}")
 

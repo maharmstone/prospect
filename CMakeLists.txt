@@ -78,3 +78,8 @@ configure_package_config_file(
 )
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/prospectConfig.cmake" DESTINATION "lib/cmake/prospect")
+
+set(CPACK_PACKAGE_NAME prospect-dev)
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Mark Harmstone")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libxml2-dev, libcurl4-openssl-dev")
+include(CPack)

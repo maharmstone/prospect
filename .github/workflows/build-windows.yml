@@ -9,7 +9,7 @@ jobs:
       - run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
       - run: git clone ${{ github.server_url }}/${{ github.repository }} ${SHORT_SHA}
       - run: cd ${SHORT_SHA} && git checkout ${{ github.sha }}
-      - run: mkdir libxml2 && cd libxml2 && wget -qO- https://www.burntcomma.com/libxml2-2.9.12-x86_64-pc-windows-msvc.tar.gz | tar -xz
+      - run: mkdir libxml2 && cd libxml2 && wget -qO- https://www.burntcomma.com/packages/libxml2-2.11.7-x86_64-pc-windows-msvc.tar.gz | tar -xz
       - run: mkdir curl && cd curl && wget -qO- https://www.burntcomma.com/curl-7.74.0-x86_64-pc-windows-msvc.tar.gz | tar -xz
       - run: mkdir libiconv && cd libiconv && wget -qO- https://www.burntcomma.com/libiconv-1.16-x86_64-pc-windows-msvc.tar.gz | tar -xz
       - run: |
